@@ -14,41 +14,6 @@ using UnityEditor.Compilation;
 
 namespace UnityDebugViewer
 {
-    /// <summary>
-    /// 存储adb logcat输出的信息
-    /// </summary>
-    class ADBLogParse : IComparable
-    {
-        public struct LogCodePath
-        {
-            public string codePath;
-            public int codeLine;
-        }
-
-        public DateTime adbLogDateTime;
-        public LogLevel adbLogLevel;
-        public string adbLogMessage;
-        public string rawLogMessage = "";
-        public List<LogCodePath> adbLogCodePath = new List<LogCodePath>();
-
-        public int CompareTo(object obj)
-        {
-            ADBLogParse tmp = obj as ADBLogParse;
-            return adbLogDateTime.CompareTo(tmp.adbLogDateTime);
-        }
-    }
-
-    class CollapseLogPair
-    {
-        public ADBLogParse Log { get; private set; }
-        public int Count { get; set; }
-        public CollapseLogPair(ADBLogParse log)
-        {
-            Log = log;
-            Count = 1;
-        }
-    }
-
     public class LogCatTool : EditorWindow
     {
 
@@ -80,15 +45,14 @@ namespace UnityDebugViewer
         /// 用来匹配log的正则表达式
         /// </summary>
         private const string LogcatPattern = @"([0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9]\.[0-9]{3}) ([WIEDV])/(.*)";
+        //private static readonly Regex LogcatRegex = new Regex(LogcatPattern, RegexOptions.Compiled);
+        private static readonly Regex LogcatRegex = new Regex(LogcatPattern);
+
 
         #region 命令行指令
         private const string LOGCAT_ARGUMENTS_WHOLE_UNITY = "logcat -s Unity";
-        
-
         #endregion
 
-        //private static readonly Regex LogcatRegex = new Regex(LogcatPattern, RegexOptions.Compiled);
-        private static readonly Regex LogcatRegex = new Regex(LogcatPattern);
 
         // Filtered GUI list scroll position
         private Vector2 scrollPosition = new Vector2(0, 0);
@@ -237,10 +201,12 @@ namespace UnityDebugViewer
 
         private void AddLogData(object sender, DataReceivedEventArgs outputLine)
         {
-            //if (outputLine.Data != null && outputLine.Data.Length > 2)
-            //{
-            //    AddLog(new LogCatLog(outputLine.Data));
-            //}
+            if (outputLine.Data != null && outputLine.Data.Length > 2)
+            {
+                AddLog(new LogCatLog(outputLine.Data));
+            }
+
+            /// 解析adb log
             List<string> parseLog = new List<string>(outputLine.Data.Split(' '));
             parseLog.RemoveAll(item => item == string.Empty);
             if (parseLog.Count > 5)
@@ -278,10 +244,10 @@ namespace UnityDebugViewer
                         startLogData = true;
                         lock (lockLogs)
                         {
-                            if (parseLogData.adbLogLevel != LogLevel.UNKNOWN && (parseLogData.rawLogMessage.Trim() != string.Empty
-                                || (parseLogData.rawLogMessage.Trim() == string.Empty && parseLogData.adbLogLevel != LogLevel.INFO)))
+                            if (parseLogData.adbLogLevel != LogLevel.UNKNOWN && (parseLogData.stackMessage.Trim() != string.Empty
+                                || (parseLogData.stackMessage.Trim() == string.Empty && parseLogData.adbLogLevel != LogLevel.INFO)))
                             {
-                                foreach (Match regMatch in Regex.Matches(parseLogData.rawLogMessage, filePathPattern))
+                                foreach (Match regMatch in Regex.Matches(parseLogData.stackMessage, filePathPattern))
                                 {
                                     string source = regMatch.Groups[2].Value;
                                     int line = int.Parse(regMatch.Groups[3].Value);
@@ -326,7 +292,7 @@ namespace UnityDebugViewer
                         }
                     }
                     else
-                        parseLogData.rawLogMessage += (message + "\n");
+                        parseLogData.stackMessage += (message + "\n");
                 }
             }
 
