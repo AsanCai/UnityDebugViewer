@@ -98,9 +98,9 @@ namespace UnityDebugViewer
 
             ///创建socket并开始监听
             serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            serverSocket.Connect(ipe);
-            //serverSocket.Bind(ipe);
-            //serverSocket.Listen(0);
+            //serverSocket.Connect(ipe);
+            serverSocket.Bind(ipe);
+            serverSocket.Listen(0);
 
             listenThread = new Thread(new ThreadStart(SocketReceive));
             listenThread.Start();
@@ -116,6 +116,8 @@ namespace UnityDebugViewer
         }
 
         private static byte[] result = new byte[1024];
+        Byte[] bytes = new Byte[256];
+        String data = null;
         private void SocketReceive()
         {
             //SocketConnet();
@@ -127,6 +129,7 @@ namespace UnityDebugViewer
                     int receiveNumber = serverSocket.Receive(result);
                     if (receiveNumber == 0)
                     {
+                        //SocketConnet();
                         continue;
                     }
 
@@ -136,13 +139,32 @@ namespace UnityDebugViewer
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.Message);
-                    //clientSocket.Shutdown(SocketShutdown.Both);
-                    //clientSocket.Close();
-                    serverSocket.Shutdown(SocketShutdown.Both);
-                    serverSocket.Close();
+                    clientSocket.Shutdown(SocketShutdown.Both);
+                    clientSocket.Close();
+                    //serverSocket.Shutdown(SocketShutdown.Both);
+                    //serverSocket.Close();
                 }
             }
+
+            //while(serverListener != null)
+            //{
+            //    TcpClient client = serverListener.AcceptTcpClient();
+
+            //    // Get a stream object for reading and writing
+            //    NetworkStream stream = client.GetStream();
+
+            //    int i;
+
+            //    // Loop to receive all the data sent by the client.
+            //    while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
+            //    {
+            //        data = System.Text.Encoding.UTF8.GetString(bytes, 0, i);
+            //        UnityEngine.Debug.LogError(data);
+            //    }
+
+            //    // Shutdown and end connection
+            //    client.Close();
+            //}
         }
 
         private void OnEnable()

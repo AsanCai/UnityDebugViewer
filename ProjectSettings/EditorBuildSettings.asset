@@ -6,5 +6,5 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Test/Test.unity
-    guid: bcf81354f0cf8a246938b83387bb6ff6
+    path: Assets/Scenes/TestAdb.unity
+    guid: a6f86bc678f3e194485c7fc6a793ae09
