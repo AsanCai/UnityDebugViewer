@@ -1,58 +1,142 @@
-﻿using System;
+﻿using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+//引入库
 using System.Net;
 using System.Net.Sockets;
-using UnityEngine;
+using System.Text;
+using System.Threading;
 
+/// <summary>
+/// 手机端，建立tcp server
+/// </summary>
 public class UnityLogTransfer : MonoBehaviour
 {
+    private Socket serverSocket;
+    private Socket clientSocket;
+    private IPEndPoint ipEnd;
+    private string receiveStr;
+    private string sendStr;
+    private byte[] receiveData = new byte[1024];
+    private byte[] sendData = new byte[1024];
+    private int receiveLength;
+    private Thread connectThread;
 
     private void Awake()
     {
-        CreateSocket();
+        CreateServerSocket();
         Application.logMessageReceivedThreaded += CaptureLogThread;
     }
 
-    private void OnDestroy()
+    private void OnApplicationQuit()
     {
+        SocketQuit();
         Application.logMessageReceivedThreaded -= CaptureLogThread;
-        socket.Close();
     }
 
-    string info = string.Empty;
+    private List<string> infoList = new List<string>();
     private void OnGUI()
     {
-        GUILayout.Label(info);
+        foreach(var info in infoList)
+        {
+            GUILayout.Label(info);
+        }
     }
 
-    private Socket socket;
-    private void CreateSocket()
+    private void CreateServerSocket()
     {
-        int port = 5000;
-        string host = "127.0.0.1";
-        IPAddress ip = IPAddress.Parse(host);
+        ipEnd = new IPEndPoint(IPAddress.Any, 5000);
 
-        IPEndPoint ipe = new IPEndPoint(ip, port);
+        serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        serverSocket.Bind(ipEnd);
+        serverSocket.Listen(10);
 
-        socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        socket.Connect(ipe);
+        connectThread = new Thread(new ThreadStart(SocketReceive));
+        connectThread.Start();
     }
 
-    void CaptureLogThread(string condition, string stacktrace, UnityEngine.LogType type)
+    private void SocketReceive()
+    {
+        /// 连接
+        SocketConnect();
+        while (true)
+        {
+            receiveData = new byte[1024];
+            receiveLength = clientSocket.Receive(receiveData);
+            if(receiveLength == 0)
+            {
+                SocketConnect();
+                continue;
+            }
+
+            receiveStr = Encoding.UTF8.GetString(receiveData, 0, receiveLength);
+            infoList.Add(receiveStr);
+        }
+    }
+
+    private void SocketConnect()
+    {
+        if(clientSocket != null)
+        {
+            clientSocket.Close();
+        }
+
+        //控制台输出侦听状态
+        infoList.Add("Waiting for a client");
+        //一旦接受连接，创建一个客户端
+        clientSocket = serverSocket.Accept();
+        Debug.LogError("Accept");
+
+        //获取客户端的IP和端口
+        IPEndPoint ipEndClient = (IPEndPoint)clientSocket.RemoteEndPoint;
+        //输出客户端的IP和端口
+        infoList.Add("Connect with " + ipEndClient.Address.ToString() + ":" + ipEndClient.Port.ToString());
+        //连接成功则发送数据
+        sendStr = "Connect to server sucessfully";
+        SocketSend(sendStr);
+    }
+
+    private void SocketSend(string data)
+    {
+        if (clientSocket == null)
+        {
+            Debug.LogError("Client socket is null");
+            return;
+        }
+
+        sendData = new byte[1024];
+        sendData = Encoding.UTF8.GetBytes(data);
+        clientSocket.Send(sendData);
+    }
+
+    private void SocketQuit()
+    {
+        //先关闭客户端
+        if (clientSocket != null)
+        {
+            clientSocket.Close();
+        }
+
+        //再关闭线程
+        if (connectThread != null)
+        {
+            connectThread.Interrupt();
+            connectThread.Abort();
+        }
+        //最后关闭服务器
+        if(serverSocket != null)
+        {
+            serverSocket.Close();
+        }
+        infoList.Add("Server Close");
+    }
+
+    private void CaptureLogThread(string condition, string stacktrace, UnityEngine.LogType type)
     {
         if(type == LogType.Error)
         {
             return;
         }
 
-
-        lock (socket)
-        {
-            info = condition + stacktrace;
-            byte[] bs = Encoding.UTF8.GetBytes(info);
-            socket.Send(bs);
-        }
+        SocketSend(condition + stacktrace);
     }
 }

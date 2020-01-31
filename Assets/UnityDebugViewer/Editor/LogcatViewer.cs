@@ -9,7 +9,6 @@ using UnityEditor;
 using System.Text.RegularExpressions;
 using System.Text;
 using System.Threading;
-using System.Collections;
 
 namespace UnityDebugViewer
 {
@@ -59,7 +58,7 @@ namespace UnityDebugViewer
 
     public class LogcatViewer : EditorWindow
     {
-        [MenuItem("Window/Android - LogCatViewer")]
+        //[MenuItem("Window/Android - LogCatViewer")]
         public static void ShowWindow()
         {
             EditorWindow.GetWindow(typeof(LogcatViewer), false, "LogcatViewer");
@@ -85,87 +84,99 @@ namespace UnityDebugViewer
         private List<ADBLogParse> adbLogs;
         private List<ADBLogParse> adbFilteredLogs;
 
+        #region Tcp Client
+        private IPAddress ip;
+        private IPEndPoint ipEnd;
         private Socket serverSocket;
-        private Socket clientSocket;
-        Thread listenThread;
-        private void CreateServer()
+
+        private byte[] receiveData;
+        private byte[] sendData;
+        private int receiveLength;
+        private string receiveStr;
+        private string sendStr;
+        private Thread connectThread;
+
+        private void ConnectToServer()
         {
-            int port = 5000;
-            string host = "127.0.0.1";
+            ip = IPAddress.Parse("127.0.0.1");
+            ipEnd = new IPEndPoint(ip, 5000);
 
-            IPAddress ip = IPAddress.Parse(host);
-            IPEndPoint ipe = new IPEndPoint(ip, port);
-
-            ///创建socket并开始监听
-            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            //serverSocket.Connect(ipe);
-            serverSocket.Bind(ipe);
-            serverSocket.Listen(0);
-
-            listenThread = new Thread(new ThreadStart(SocketReceive));
-            listenThread.Start();
+            connectThread = new Thread(new ThreadStart(SocketReceive));
+            connectThread.Start();
         }
 
-        void SocketConnet()
-        {
-            if (clientSocket != null)
-                clientSocket.Close();
-
-            clientSocket = serverSocket.Accept();
-            IPEndPoint ipEndClient = (IPEndPoint)clientSocket.RemoteEndPoint;
-        }
-
-        private static byte[] result = new byte[1024];
-        Byte[] bytes = new Byte[256];
-        String data = null;
         private void SocketReceive()
         {
-            //SocketConnet();
-            while (serverSocket != null)
+            SocketConnect();
+            while (true)
             {
-                try
+                receiveData = new byte[1024];
+                receiveLength = serverSocket.Receive(receiveData);
+                if (receiveLength == 0)
                 {
-                    //int receiveNumber = clientSocket.Receive(result);
-                    int receiveNumber = serverSocket.Receive(result);
-                    if (receiveNumber == 0)
-                    {
-                        //SocketConnet();
-                        continue;
-                    }
-
-                    string str = Encoding.UTF8.GetString(result);
-
-                    UnityEngine.Debug.LogError(str);
+                    SocketConnect();
+                    continue;
                 }
-                catch (Exception ex)
-                {
-                    clientSocket.Shutdown(SocketShutdown.Both);
-                    clientSocket.Close();
-                    //serverSocket.Shutdown(SocketShutdown.Both);
-                    //serverSocket.Close();
-                }
+
+                receiveStr = Encoding.UTF8.GetString(receiveData, 0, receiveLength);
+                UnityEngine.Debug.LogError(receiveStr);
+            }
+        }
+
+        private void SocketConnect()
+        {
+            if (serverSocket != null)
+            {
+                serverSocket.Close();
+                serverSocket = null;
             }
 
-            //while(serverListener != null)
-            //{
-            //    TcpClient client = serverListener.AcceptTcpClient();
+            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            serverSocket.Connect(ipEnd);
 
-            //    // Get a stream object for reading and writing
-            //    NetworkStream stream = client.GetStream();
+            //输出初次连接收到的字符串
+            receiveLength = serverSocket.Receive(receiveData);
+            if(receiveLength == 0)
+            {
+                return;
+            }
 
-            //    int i;
-
-            //    // Loop to receive all the data sent by the client.
-            //    while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
-            //    {
-            //        data = System.Text.Encoding.UTF8.GetString(bytes, 0, i);
-            //        UnityEngine.Debug.LogError(data);
-            //    }
-
-            //    // Shutdown and end connection
-            //    client.Close();
-            //}
+            receiveStr = Encoding.UTF8.GetString(receiveData, 0, receiveLength);
+            UnityEngine.Debug.LogError(receiveStr);
         }
+
+        private void SocketSend(string data)
+        {
+            if (serverSocket == null)
+            {
+                UnityEngine.Debug.LogError("Server socket is null");
+                return;
+            }
+
+            sendData = new byte[1024];
+            sendData = Encoding.UTF8.GetBytes(data);
+            serverSocket.Send(sendData);
+        }
+
+        private void SocketQuit()
+        {
+            //先关闭线程
+            if (connectThread != null)
+            {
+                connectThread.Interrupt();
+                connectThread.Abort();
+            }
+
+            //最后关闭服务器
+            if(serverSocket != null)
+            {
+                serverSocket.Close();
+                serverSocket = null;
+            }
+
+            UnityEngine.Debug.LogError("Disconnect");
+        }
+        #endregion
 
         private void OnEnable()
         {
@@ -238,19 +249,15 @@ namespace UnityDebugViewer
             }
 
             GUI.enabled = serverSocket == null;
-            if (GUILayout.Button("Create Server", GUILayout.Width(100)))
+            if (GUILayout.Button("Connect", GUILayout.Width(100)))
             {
-                CreateServer();
+                ConnectToServer();
             }
 
             GUI.enabled = serverSocket != null;
-            if (GUILayout.Button("Close Server", GUILayout.Width(100)))
+            if (GUILayout.Button("Disconnect", GUILayout.Width(100)))
             {
-                if(serverSocket != null)
-                {
-                    serverSocket.Close();
-                    serverSocket = null;
-                }
+                SocketQuit();
             }
 
             //GUILayout.Label(filteredList.Count + " matching logs", GUILayout.Height(20));

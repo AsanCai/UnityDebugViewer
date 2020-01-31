@@ -114,7 +114,7 @@ public class UnityADBHelper : EditorWindow
     private bool splitterResizeFlag = false;
 
     // Add menu named "ADB for Unity" to the Window menu
-    [MenuItem("Window/ADB - Unity")]
+    //[MenuItem("Window/ADB - Unity")]
     static void Init()
     {
         // Get existing open window or if none, make a new one:

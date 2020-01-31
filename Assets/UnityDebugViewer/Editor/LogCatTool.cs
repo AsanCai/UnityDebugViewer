@@ -58,7 +58,7 @@ namespace UnityDebugViewer
         private Vector2 scrollPosition = new Vector2(0, 0);
 
         // Add menu item named "LogCat" to the Window menu
-        [MenuItem("Window/Android - LogCatTool")]
+        //[MenuItem("Window/Android - LogCatTool")]
         public static void ShowWindow()
         {
             // 显示窗口
