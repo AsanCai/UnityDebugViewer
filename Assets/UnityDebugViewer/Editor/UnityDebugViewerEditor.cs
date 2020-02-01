@@ -2,9 +2,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using System.Text.RegularExpressions;
 
 namespace UnityDebugViewer
 {
+    public enum UnityDebugViewerMode
+    {
+        Editor,
+        ADBForward,
+        ADBRemote,
+        LogFile
+    }
+
+    /// <summary>
+    /// 负责绘制窗口
+    /// </summary>
     public class UnityDebugViewerEditor : EditorWindow
     {
         private Rect upperPanel;
@@ -17,6 +29,7 @@ namespace UnityDebugViewer
 
         private float resizerHeight = 5f;
         private float menuBarHeight = 20f;
+        private float dropDownWidth = 50f;
 
         private const string ShowLogPref = "LOGGER_EDITOR_SHOW_LOG";
         private const string ShowWarningPref = "LOGGER_EDITOR_SHOW_WARNING";
@@ -27,6 +40,10 @@ namespace UnityDebugViewer
         private bool showLog = false;
         private bool showWarning = false;
         private bool showError = false;
+        private UnityDebugViewerMode mode = UnityDebugViewerMode.Editor;
+        private string pcPort = string.Empty;
+        private string phonePort = string.Empty;
+        private bool startForwardProcess = false;
 
         private Vector2 upperPanelScroll;
         private Vector2 lowerPanelScroll;
@@ -35,9 +52,48 @@ namespace UnityDebugViewer
         private GUIStyle resizerStyle;
         private GUIStyle boxStyle;
 
-        private Texture2D boxBgOdd;
-        private Texture2D boxBgEven;
-        private Texture2D boxBgSelected;
+        private Texture2D _bgBoxOdd;
+        private Texture2D boxBgOdd
+        {
+            get
+            {
+                if(_bgBoxOdd == null)
+                {
+                    //_bgBoxOdd = EditorGUIUtility.Load("builtin skins/darkskin/images/cn entrybackodd.png") as Texture2D;
+                    _bgBoxOdd = GUI.skin.GetStyle("OL EntryBackOdd").normal.background;
+                }
+
+                return _bgBoxOdd;
+            }
+        }
+        private Texture2D _boxBgEven;
+        private Texture2D boxBgEven
+        {
+            get
+            {
+                if(_boxBgEven == null)
+                {
+                    //_boxBgEven = EditorGUIUtility.Load("builtin skins/darkskin/images/cnentrybackeven.png") as Texture2D;
+                    _boxBgEven = GUI.skin.GetStyle("OL EntryBackEven").normal.background;
+                }
+
+                return _boxBgEven;
+            }
+        }
+        private Texture2D _boxBgSelected;
+        private Texture2D boxBgSelected
+        {
+            get
+            {
+                if(_boxBgSelected == null)
+                {
+                    //_boxBgSelected = EditorGUIUtility.Load("builtin skins/darkskin/images/menuitemhover.png") as Texture2D;
+                    _boxBgSelected = GUI.skin.GetStyle("OL SelectedRow").normal.background;
+                }
+
+                return _boxBgSelected;
+            }
+        }
         private Texture2D icon;
 
         private Texture2D errorIcon;
@@ -47,9 +103,6 @@ namespace UnityDebugViewer
         private Texture2D infoIcon;
         private Texture2D infoIconSmall;
 
-        private List<Log> logs;
-        private Log selectedLog;
-
         [MenuItem("Window/Debug Viewer")]
         private static void OpenWindow()
         {
@@ -57,7 +110,7 @@ namespace UnityDebugViewer
             window.titleContent = new GUIContent("Debug Viewer");
         }
 
-        private void OnEnable()
+        private void Awake()
         {
             errorIcon = EditorGUIUtility.Load("icons/console.erroricon.png") as Texture2D;
             warningIcon = EditorGUIUtility.Load("icons/console.warnicon.png") as Texture2D;
@@ -71,11 +124,14 @@ namespace UnityDebugViewer
             resizerStyle.normal.background = EditorGUIUtility.Load("icons/d_AvatarBlendBackground.png") as Texture2D;
 
             boxStyle = new GUIStyle();
-            boxStyle.normal.textColor = new Color(0.7f, 0.7f, 0.7f);
-
-            boxBgOdd = EditorGUIUtility.Load("builtin skins/darkskin/images/cn entrybackodd.png") as Texture2D;
-            boxBgEven = EditorGUIUtility.Load("builtin skins/darkskin/images/cnentrybackeven.png") as Texture2D;
-            boxBgSelected = EditorGUIUtility.Load("builtin skins/darkskin/images/menuitemhover.png") as Texture2D;
+            if (EditorGUIUtility.isProSkin)
+            {
+                boxStyle.normal.textColor = new Color(0.7f, 0.7f, 0.7f);
+            }
+            else
+            {
+                boxStyle.normal.textColor = new Color(0f, 0f, 0f);
+            }
 
             textAreaStyle = new GUIStyle();
             textAreaStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
@@ -85,20 +141,12 @@ namespace UnityDebugViewer
             showWarning = PlayerPrefs.GetInt(ShowWarningPref, 0) == 1;
             showError = PlayerPrefs.GetInt(ShowErrorPref, 0) == 1;
 
-            logs = new List<Log>();
-            selectedLog = null;
-
-            Application.logMessageReceived += LogMessageReceived;
-        }
-
-        private void OnDisable()
-        {
-            Application.logMessageReceived -= LogMessageReceived;
+            Application.logMessageReceivedThreaded += LogMessageReceived;
         }
 
         private void OnDestroy()
         {
-            Application.logMessageReceived -= LogMessageReceived;
+            Application.logMessageReceivedThreaded -= LogMessageReceived;
         }
 
         private void OnGUI()
@@ -121,14 +169,84 @@ namespace UnityDebugViewer
             {
                 GUILayout.BeginHorizontal();
                 {
-
-                    GUILayout.Button(new GUIContent("Clear"), EditorStyles.toolbarButton, GUILayout.Width(40));
+                    if(GUILayout.Button(new GUIContent("Clear"), EditorStyles.toolbarButton, GUILayout.Width(40)))
+                    {
+                        UnityDebugViewerLogger.ClearLog();
+                    }
 
                     GUILayout.Space(5);
 
                     collapse = GUILayout.Toggle(collapse, new GUIContent("Collapse"), EditorStyles.toolbarButton, GUILayout.Width(60));
                     clearOnPlay = GUILayout.Toggle(clearOnPlay, new GUIContent("Clear On Play"), EditorStyles.toolbarButton, GUILayout.Width(80));
                     errorPause = GUILayout.Toggle(errorPause, new GUIContent("Error Pause"), EditorStyles.toolbarButton, GUILayout.Width(70));
+
+                    GUILayout.Space(5);
+
+                    
+                    mode = (UnityDebugViewerMode)EditorGUILayout.EnumPopup(mode, EditorStyles.toolbarDropDown, GUILayout.Width(dropDownWidth));
+                    switch (mode)
+                    {
+                        case UnityDebugViewerMode.Editor:
+                            dropDownWidth = 50f;
+                            break;
+                        case UnityDebugViewerMode.ADBForward:
+                            dropDownWidth = 90f;
+
+                            EditorGUILayout.LabelField(new GUIContent("PC Port:"), EditorStyles.label, GUILayout.Width(50f));
+                            pcPort = EditorGUILayout.TextField(pcPort, EditorStyles.textField, GUILayout.Width(60f));
+                            if (string.IsNullOrEmpty(pcPort))
+                            {
+                                pcPort = UnityDebugViewerADB.DEFAULT_PC_PORT;
+                            }
+                            else
+                            {
+                                pcPort = Regex.Replace(pcPort, @"[^0-9]", "");
+                            }
+
+                            EditorGUILayout.LabelField(new GUIContent("Phone Port:"), EditorStyles.label, GUILayout.Width(70f));
+                            phonePort = EditorGUILayout.TextField(phonePort, EditorStyles.textField, GUILayout.Width(60f));
+                            if (string.IsNullOrEmpty(phonePort))
+                            {
+                                phonePort = UnityDebugViewerADB.DEFAULT_PHONE_PORT;
+                            }
+                            else
+                            {
+                                phonePort = Regex.Replace(phonePort, @"[^0-9]", "");
+                            }
+
+                            GUI.enabled = !startForwardProcess;
+                            if (GUILayout.Button(new GUIContent("Start"), EditorStyles.toolbarButton, GUILayout.Width(40)))
+                            {
+                                startForwardProcess = UnityDebugViewerADB.StartForwardProcess(pcPort, phonePort);
+                                //startForwardProcess = true;
+                                if (startForwardProcess)
+                                {
+                                    int port = 0;
+                                    if(int.TryParse(pcPort, out port))
+                                    {
+                                        UnityDebugViewerTcp.ConnectToServer("127.0.0.1", port);
+                                        UnityDebugViewerLogger.Log(string.Format("Connect to 127.0.0.1:{0} successfully!", port));
+                                    }
+                                }
+                            }
+
+                            GUI.enabled = startForwardProcess;
+                            if (GUILayout.Button(new GUIContent("Stop"), EditorStyles.toolbarButton, GUILayout.Width(40)))
+                            {
+                                UnityDebugViewerTcp.Disconnect();
+                                UnityDebugViewerADB.StopForwardProcess();
+                                startForwardProcess = false;
+                            }
+
+                            GUI.enabled = true;
+                            break;
+                        case UnityDebugViewerMode.ADBRemote:
+                            dropDownWidth = 85f;
+                            break;
+                        case UnityDebugViewerMode.LogFile:
+                            dropDownWidth = 60f;
+                            break;
+                    }
 
                     GUILayout.FlexibleSpace();
 
@@ -166,17 +284,19 @@ namespace UnityDebugViewer
             {
                 upperPanelScroll = GUILayout.BeginScrollView(upperPanelScroll);
                 {
-                    for (int i = 0; i < logs.Count; i++)
+                    var logList = UnityDebugViewerLogger.logList;
+                    for (int i = 0; i < logList.Count; i++)
                     {
-                        if (ShouldDisplay(logs[i].type) && DrawBox(logs[i].info, logs[i].type, i % 2 == 0, logs[i].isSelected))
+                        var log = logList[i];
+                        if (ShouldDisplay(log.type) && DrawBox(log.info, log.type, i % 2 == 0, log.isSelected))
                         {
-                            if (selectedLog != null)
+                            if (UnityDebugViewerLogger.selectedLog != null)
                             {
-                                selectedLog.isSelected = false;
+                                UnityDebugViewerLogger.selectedLog.isSelected = false;
                             }
 
-                            logs[i].isSelected = true;
-                            selectedLog = logs[i];
+                            log.isSelected = true;
+                            UnityDebugViewerLogger.selectedLog = log;
                             GUI.changed = true;
                         }
                     }
@@ -194,9 +314,9 @@ namespace UnityDebugViewer
             {
                 lowerPanelScroll = GUILayout.BeginScrollView(lowerPanelScroll);
                 {
-                    if (selectedLog != null)
+                    if (UnityDebugViewerLogger.selectedLog != null)
                     {
-                        GUILayout.TextArea(selectedLog.message, textAreaStyle);
+                        GUILayout.TextArea(UnityDebugViewerLogger.selectedLog.stack, textAreaStyle);
                     }
                 }
                 GUILayout.EndScrollView();
@@ -291,26 +411,9 @@ namespace UnityDebugViewer
             }
         }
 
-        private void LogMessageReceived(string condition, string stackTrace, LogType type)
+        private void LogMessageReceived(string info, string stackTrace, LogType type)
         {
-            Log l = new Log(false, condition, stackTrace, type);
-            logs.Add(l);
-        }
-    }
-
-    public class Log
-    {
-        public bool isSelected;
-        public string info;
-        public string message;
-        public LogType type;
-
-        public Log(bool isSelected, string info, string message, LogType type)
-        {
-            this.isSelected = isSelected;
-            this.info = info;
-            this.message = message;
-            this.type = type;
+            UnityDebugViewerLogger.AddLog(info, stackTrace, type);
         }
     }
 }

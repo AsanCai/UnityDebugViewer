@@ -1,10 +1,10 @@
 ﻿using UnityEngine;
-using System.Collections.Generic;
-//引入库
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Collections.Generic;
+using UnityDebugViewer;
 
 /// <summary>
 /// 手机端，建立tcp server
@@ -15,9 +15,7 @@ public class UnityLogTransfer : MonoBehaviour
     private Socket clientSocket;
     private IPEndPoint ipEnd;
     private string receiveStr;
-    private string sendStr;
     private byte[] receiveData = new byte[1024];
-    private byte[] sendData = new byte[1024];
     private int receiveLength;
     private Thread connectThread;
 
@@ -44,7 +42,7 @@ public class UnityLogTransfer : MonoBehaviour
 
     private void CreateServerSocket()
     {
-        ipEnd = new IPEndPoint(IPAddress.Any, 5000);
+        ipEnd = new IPEndPoint(IPAddress.Any, 50000);
 
         serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         serverSocket.Bind(ipEnd);
@@ -84,28 +82,23 @@ public class UnityLogTransfer : MonoBehaviour
         infoList.Add("Waiting for a client");
         //一旦接受连接，创建一个客户端
         clientSocket = serverSocket.Accept();
-        Debug.LogError("Accept");
 
-        //获取客户端的IP和端口
+        /// 获取客户端的IP和端口
         IPEndPoint ipEndClient = (IPEndPoint)clientSocket.RemoteEndPoint;
-        //输出客户端的IP和端口
+        /// 输出客户端的IP和端口
         infoList.Add("Connect with " + ipEndClient.Address.ToString() + ":" + ipEndClient.Port.ToString());
-        //连接成功则发送数据
-        sendStr = "Connect to server sucessfully";
-        SocketSend(sendStr);
+        Debug.Log("Connect to server successfully!");
     }
 
-    private void SocketSend(string data)
+    private void SocketSend(byte[] data)
     {
         if (clientSocket == null)
         {
-            Debug.LogError("Client socket is null");
+            infoList.Add("Client socket is null");
             return;
         }
-
-        sendData = new byte[1024];
-        sendData = Encoding.UTF8.GetBytes(data);
-        clientSocket.Send(sendData);
+        
+        clientSocket.Send(data);
     }
 
     private void SocketQuit()
@@ -130,13 +123,12 @@ public class UnityLogTransfer : MonoBehaviour
         infoList.Add("Server Close");
     }
 
-    private void CaptureLogThread(string condition, string stacktrace, UnityEngine.LogType type)
+    private void CaptureLogThread(string info, string stacktrace, UnityEngine.LogType type)
     {
-        if(type == LogType.Error)
-        {
-            return;
-        }
+        /// 连接成功则发送数据
+        var logData = new TransferLogData(info, stacktrace, type);
 
-        SocketSend(condition + stacktrace);
+        byte[] sendData = UnityDebugViewerUtils.StructToBytes(logData);
+        SocketSend(sendData);
     }
 }
