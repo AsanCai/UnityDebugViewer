@@ -43,6 +43,8 @@ namespace UnityDebugViewer
     /// </summary>
     public class LogData  
     {
+        public const string LOGCAT_REGEX = @"(?<time>[\d]+-[\d]+[\s]*[\d]+:[\d]+:[\d]+.[\d]+)[\s]*(?<logType>\w)/(?<filter>[\w]*)[\s]*\([\s\d]*\)[\s:]*";
+
         public bool isSelected;
 
         public string info { get; private set; }
@@ -73,6 +75,10 @@ namespace UnityDebugViewer
             private set
             {
                 _stack = value;
+                if (string.IsNullOrEmpty(value))
+                {
+                    return;
+                }
 
                 MatchCollection matchList = Regex.Matches(_stack, StackData.STACK_REGEX);
                 this.stackList.Clear();
@@ -215,7 +221,7 @@ namespace UnityDebugViewer
             }
         }
 
-        private const int MAX_DISPLAY_NUM = 99;
+        private const int MAX_DISPLAY_NUM = 999;
 
         private static int _logNum = 0;
         public static int logNum
@@ -226,7 +232,7 @@ namespace UnityDebugViewer
             }
             private set
             {
-                int num = value > 99 ? 99 : value;
+                int num = value > MAX_DISPLAY_NUM ? MAX_DISPLAY_NUM : value;
                 _logNum = num;
             }
         }
@@ -239,7 +245,7 @@ namespace UnityDebugViewer
             }
             private set
             {
-                int num = value > 99 ? 99 : value;
+                int num = value > MAX_DISPLAY_NUM ? MAX_DISPLAY_NUM : value;
                 _warningNum = num;
             }
         }
@@ -252,7 +258,7 @@ namespace UnityDebugViewer
             }
             private set
             {
-                int num = value > 99 ? 99 : value;
+                int num = value > MAX_DISPLAY_NUM ? MAX_DISPLAY_NUM : value;
                 _errorNum = num;
             }
         }
@@ -289,6 +295,33 @@ namespace UnityDebugViewer
             string info = transferLogData.info;
             string stack = transferLogData.stack;
             AddLog(info, stack, type);
+        }
+
+        public static void AddLogcat(string logcat)
+        {
+            if (Regex.IsMatch(logcat, LogData.LOGCAT_REGEX))
+            {
+                var match = Regex.Match(logcat, LogData.LOGCAT_REGEX);
+                string logType = match.Result("${logType}").ToUpper();
+                string tag = match.Result("${tag}");
+                string time = match.Result("${time}");
+                string message = Regex.Replace(logcat, LogData.LOGCAT_REGEX, "");
+
+                switch (logType)
+                {
+                    case "I":
+                        AddLog(message, string.Empty, LogType.Log);
+                        break;
+                    case "W":
+                        AddLog(message, string.Empty, LogType.Warning);
+                        break;
+                    case "E":
+                        AddLog(message, string.Empty, LogType.Error);
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
         public static void AddLog(string info, string stack, LogType type)

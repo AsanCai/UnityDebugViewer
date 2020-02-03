@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace UnityDebugViewer
 {
@@ -10,7 +11,7 @@ namespace UnityDebugViewer
     {
         Editor,
         ADBForward,
-        ADBRemote,
+        ADBLogcat,
         LogFile
     }
 
@@ -54,6 +55,8 @@ namespace UnityDebugViewer
         private string pcPort = string.Empty;
         private string phonePort = string.Empty;
         private bool startForwardProcess = false;
+        private bool onlyShowUnityLog = true;
+        private bool startLogcatProcess = false;
         private int preLogNum = 0;
 
         private Vector2 upperPanelScroll;
@@ -305,8 +308,29 @@ namespace UnityDebugViewer
 
                             GUI.enabled = true;
                             break;
-                        case UnityDebugViewerMode.ADBRemote:
+                        case UnityDebugViewerMode.ADBLogcat:
                             dropDownWidth = 85f;
+
+                            onlyShowUnityLog = GUILayout.Toggle(onlyShowUnityLog, new GUIContent("Only Unity"), EditorStyles.toolbarButton);
+
+                            GUI.enabled = !startLogcatProcess;
+                            if (GUILayout.Button(new GUIContent("Start"), EditorStyles.toolbarButton))
+                            {
+                                startLogcatProcess = UnityDebugViewerADB.StartLogCatProcess(LogcatDataHandler/*, "Unity"*/);
+                                if (startLogcatProcess)
+                                {
+                                    UnityDebugViewerLogger.Log("Start logcat process successfully!");
+                                }
+                            }
+
+                            GUI.enabled = startLogcatProcess;
+                            if (GUILayout.Button(new GUIContent("Stop"), EditorStyles.toolbarButton))
+                            {
+                                UnityDebugViewerADB.StopLogCatProcess();
+                                startLogcatProcess = false;
+                            }
+
+                            GUI.enabled = true;
                             break;
                         case UnityDebugViewerMode.LogFile:
                             dropDownWidth = 60f;
@@ -567,15 +591,21 @@ namespace UnityDebugViewer
 
         private void PlayModeStateChangeHandler(PlayModeStateChange state)
         {
-            //if(!isPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
-            //{
-            //    if (clearOnPlay)
-            //    {
-            //        UnityDebugViewerLogger.ClearLog();
-            //    }
-            //}
+            if (!isPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                if (clearOnPlay)
+                {
+                    UnityDebugViewerLogger.ClearLog();
+                }
+            }
 
-            //isPlaying = EditorApplication.isPlayingOrWillChangePlaymode;
+            isPlaying = EditorApplication.isPlayingOrWillChangePlaymode;
+        }
+
+        private void LogcatDataHandler(object sender, DataReceivedEventArgs outputLine)
+        {
+            //UnityDebugViewerLogger.AddLog(outputLine.Data, string.Empty, LogType.Log);
+            UnityDebugViewerLogger.AddLogcat(outputLine.Data);
         }
     }
 }

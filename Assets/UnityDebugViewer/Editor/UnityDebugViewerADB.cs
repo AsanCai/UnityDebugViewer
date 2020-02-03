@@ -14,7 +14,9 @@ namespace UnityDebugViewer
         public const string DEFAULT_PHONE_PORT = "50000";
 
         private const string LOGCAT_CLEAR = "logcat -c";
-        private const string LOGCAT_ARGUMENTS_WHOLE_UNITY = "logcat -s Unity";
+        //private const string LOGCAT_ARGUMENTS_WHOLE_UNITY = "logcat -s Unity";
+        private const string LOGCAT_ARGUMENTS = "logcat -v time";
+        private const string LOGCAT_ARGUMENTS_WITH_FILTER = "logcat -v time -s {0}";
         private const string ADB_DEVICE_CHECK = "devices";
         private const string START_ADB_FORWARD = "forward tcp:{0} tcp:{1}";
         private const string STOP_ADB_FORWARD = "forward --remove-all";
@@ -32,13 +34,13 @@ namespace UnityDebugViewer
             clearProcess.WaitForExit();
         }
 
-        public static void StartLogCatProcess(string commands, DataReceivedEventHandler processDataHandler)
+        public static bool StartLogCatProcess(string commands, DataReceivedEventHandler processDataHandler)
         {
             // 创建`adb logcat`进程
             ProcessStartInfo logProcessInfo = CreateProcessStartInfo(commands);
             if(logProcessInfo == null)
             {
-                return;
+                return false;
             }
 
             /// 执行adb进程
@@ -48,17 +50,39 @@ namespace UnityDebugViewer
             logCatProcess.OutputDataReceived += processDataHandler;
             logCatProcess.BeginErrorReadLine();
             logCatProcess.BeginOutputReadLine();
+
+            return true;
         }
 
-        public static void StartLogCatProcess(DataReceivedEventHandler processDataHandler)
+        public static bool StartLogCatProcess(DataReceivedEventHandler processDataHandler, string filter = null)
         {
-            StartLogCatProcess(LOGCAT_ARGUMENTS_WHOLE_UNITY, processDataHandler);
+            if (CheckDevice())
+            {
+                string commands = string.IsNullOrEmpty(filter) ? LOGCAT_ARGUMENTS : string.Format(LOGCAT_ARGUMENTS_WITH_FILTER, filter);
+                ProcessStartInfo logProcessInfo = CreateProcessStartInfo(commands);
+                if (logProcessInfo != null)
+                {
+                    /// 执行adb进程
+                    logCatProcess = Process.Start(logProcessInfo);
+                    logCatProcess.ErrorDataReceived += processDataHandler;
+                    logCatProcess.OutputDataReceived += processDataHandler;
+                    logCatProcess.BeginErrorReadLine();
+                    logCatProcess.BeginOutputReadLine();
+                    return true;
+                }
+            }
+            else
+            {
+                EditorUtility.DisplayDialog("Unity Debug Viewer", "Cannot detect any android device", "ok");
+            }
+
+            return false;
         }
 
 
         public static void StopLogCatProcess()
         {
-            if(logCatProcess != null)
+            if (logCatProcess != null)
             {
                 try
                 {

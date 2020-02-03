@@ -88,6 +88,7 @@ namespace UnityDebugViewer
             {
                 connectThread.Interrupt();
                 connectThread.Abort();
+                connectThread = null;
             }
 
             //最后关闭服务器
