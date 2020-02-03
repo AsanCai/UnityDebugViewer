@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditorInternal;
 
@@ -8,7 +9,7 @@ namespace UnityDebugViewer
     /// <summary>
     /// 为UnityDebugViewerWindow提供与Editor相关的操作
     /// </summary>
-    public static class UnityDebugViewerEditor
+    public static class UnityDebugViewerEditorUtility
     {
         public const char UnityInternalDirectorySeparator = '/';
         public const string EllipsisStr = "........";
@@ -77,7 +78,7 @@ namespace UnityDebugViewer
         /// <returns></returns>
         private static string ReplaceTabWithSpace(string str)
         {
-            return str.Replace("\t", "    ");
+            return str.Replace("\t", "\b\b\b\b");
         }
     }
 }

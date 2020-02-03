@@ -41,7 +41,7 @@ namespace UnityDebugViewer
                 Array.Copy(receiveBuffer, receivedBytes, receiveLength);
 
                 TransferLogData data = UnityDebugViewerUtils.BytesToStruct<TransferLogData>(receivedBytes);
-                UnityDebugViewerLogger.AddLog(data);
+                UnityDebugViewerLogger.AddTransferLog(data);
             }
         }
 

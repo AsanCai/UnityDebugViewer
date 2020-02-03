@@ -32,6 +32,7 @@ namespace UnityDebugViewer
         }
     }
 
+    [Serializable]
     public struct CollapsedLogData
     {
         public LogData log;
@@ -41,6 +42,7 @@ namespace UnityDebugViewer
     /// <summary>
     /// 保存log数据
     /// </summary>
+    [Serializable]
     public class LogData  
     {
         public const string LOGCAT_REGEX = @"(?<time>[\d]+-[\d]+[\s]*[\d]+:[\d]+:[\d]+.[\d]+)[\s]*(?<logType>\w)/(?<filter>[\w]*)[\s]*\([\s\d]*\)[\s:]*";
@@ -132,6 +134,7 @@ namespace UnityDebugViewer
     /// <summary>
     /// 保存堆栈信息
     /// </summary>
+    [Serializable]
     public class StackData
     {
         /// <summary>
@@ -177,130 +180,44 @@ namespace UnityDebugViewer
         }
     }
 
-    public static class UnityDebugViewerLogger
+    public class UnityDebugViewerLogger
     {
-        private static List<LogData> _logList = null;
-        public static List<LogData> logList
+        /// <summary>
+        /// 输出editor log
+        /// </summary>
+        /// <param name="transferLogData"></param>
+        public static void AddEditorLog(string info, string stack, LogType type)
         {
-            get
-            {
-                if(_logList == null)
-                {
-                    _logList = new List<LogData>();
-                }
-
-                return _logList;
-            }
+            /// 默认输出至logcat editor
+            UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor;
+            AddLog(info, stack, type, editorType);
         }
 
-        private static List<LogData> _collapsedLogList = null;
-        public static List<LogData> collapsedLogList
+        /// <summary>
+        /// 输出tcp log
+        /// </summary>
+        /// <param name="transferLogData"></param>
+        public static void AddTransferLog(TransferLogData transferLogData)
         {
-            get
-            {
-                if (_collapsedLogList == null)
-                {
-                    _collapsedLogList = new List<LogData>();
-                }
-
-                return _collapsedLogList;
-            }
-        }
-
-        private static Dictionary<string, CollapsedLogData> _collapsedLogDataDic = null;
-        private static Dictionary<string, CollapsedLogData> collapsedLogDic
-        {
-            get
-            {
-                if(_collapsedLogDataDic == null)
-                {
-                    _collapsedLogDataDic = new Dictionary<string, CollapsedLogData>();
-                }
-
-                return _collapsedLogDataDic;
-            }
-        }
-
-        private const int MAX_DISPLAY_NUM = 999;
-
-        private static int _logNum = 0;
-        public static int logNum
-        {
-            get
-            {
-                return _logNum;
-            }
-            private set
-            {
-                int num = value > MAX_DISPLAY_NUM ? MAX_DISPLAY_NUM : value;
-                _logNum = num;
-            }
-        }
-        private static int _warningNum = 0;
-        public static int warningNum
-        {
-            get
-            {
-                return _warningNum;
-            }
-            private set
-            {
-                int num = value > MAX_DISPLAY_NUM ? MAX_DISPLAY_NUM : value;
-                _warningNum = num;
-            }
-        }
-        private static int _errorNum = 0;
-        public static int errorNum
-        {
-            get
-            {
-                return _errorNum;
-            }
-            private set
-            {
-                int num = value > MAX_DISPLAY_NUM ? MAX_DISPLAY_NUM : value;
-                _errorNum = num;
-            }
-        }
-
-        public static LogData selectedLog = null;
-
-        public static void ClearLog()
-        {
-            logList.Clear();
-            collapsedLogList.Clear();
-            collapsedLogDic.Clear();
-
-            selectedLog = null;
-            logNum = 0;
-            warningNum = 0;
-            errorNum = 0;
-        }
-
-        public static int GetLogNum(LogData data)
-        {
-            int num = 1;
-            string key = data.GetKey();
-            if (collapsedLogDic.ContainsKey(key))
-            {
-                num = collapsedLogDic[key].count;
-            }
-
-            return num;
-        }
-
-        public static void AddLog(TransferLogData transferLogData)
-        {
+            /// 默认输出至logcat editor
+            UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.ADBForward;
             LogType type = (LogType)transferLogData.logType;
             string info = transferLogData.info;
             string stack = transferLogData.stack;
-            AddLog(info, stack, type);
+            AddLog(info, stack, type, editorType);
         }
 
-        public static void AddLogcat(string logcat)
+
+        /// <summary>
+        /// 输出logcat log
+        /// </summary>
+        /// <param name="logcat"></param>
+        public static void AddLogcatLog(string logcat)
         {
             if (Regex.IsMatch(logcat, LogData.LOGCAT_REGEX))
             {
+                /// 默认输出至logcat editor
+                UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.ADBLogcat;
                 var match = Regex.Match(logcat, LogData.LOGCAT_REGEX);
                 string logType = match.Result("${logType}").ToUpper();
                 string tag = match.Result("${tag}");
@@ -310,13 +227,13 @@ namespace UnityDebugViewer
                 switch (logType)
                 {
                     case "I":
-                        AddLog(message, string.Empty, LogType.Log);
+                        AddLog(message, string.Empty, LogType.Log, editorType);
                         break;
                     case "W":
-                        AddLog(message, string.Empty, LogType.Warning);
+                        AddLog(message, string.Empty, LogType.Warning, editorType);
                         break;
                     case "E":
-                        AddLog(message, string.Empty, LogType.Error);
+                        AddLog(message, string.Empty, LogType.Error, editorType);
                         break;
                     default:
                         break;
@@ -324,91 +241,34 @@ namespace UnityDebugViewer
             }
         }
 
-        public static void AddLog(string info, string stack, LogType type)
+        public static void AddLog(string info, string stack, LogType type, UnityDebugViewerEditorType editorType)
         {
             var logData = new LogData(info, stack, type);
-            AddLog(logData);
+            AddLog(logData, editorType);
         }
 
-        public static void AddLog(LogData data)
+        public static void AddLog(LogData data, UnityDebugViewerEditorType editorType)
         {
-            switch (data.type)
-            {
-                case LogType.Log:
-                    logNum++;
-                    break;
-                case LogType.Warning:
-                    warningNum++;
-                    break;
-                case LogType.Error:
-                case LogType.Exception:
-                case LogType.Assert:
-                    errorNum++;
-                    break;
-            }
-            logList.Add(data);
-
-            CollapsedLogData collapsedLogData;
-            string key = data.GetKey();
-            var cloneLog = data.Clone();
-            if (collapsedLogDic.ContainsKey(key))
-            {
-                collapsedLogData.count = collapsedLogDic[key].count + 1;
-                collapsedLogData.log = collapsedLogDic[key].log;
-                collapsedLogDic[key] = collapsedLogData;
-            }
-            else
-            {
-                collapsedLogData.log = cloneLog;
-                collapsedLogData.count = 1;
-                collapsedLogDic.Add(key, collapsedLogData);
-                collapsedLogList.Add(cloneLog);
-            }
+            /// 将log输出至指定的editor
+            UnityDebugViewerEditorManager.GetEditor(editorType).AddLog(data);
         }
 
-        public static TransferLogData Log(string str)
+        public static void Log(string str, UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor)
         {
             string stack = new StackTrace().ToString();
-            AddLog(str, stack, LogType.Log);
-
-            TransferLogData logData = new TransferLogData
-            {
-                info = str,
-                stack = stack,
-                logType = (int)LogType.Log
-            };
-
-            return logData;
+            AddLog(str, stack, LogType.Log, editorType);
         }
 
-        public static TransferLogData LogWarning(string str)
+        public static void LogWarning(string str, UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor)
         {
             string stack = new StackTrace().ToString();
-            AddLog(str, stack, LogType.Warning);
-
-            TransferLogData logData = new TransferLogData
-            {
-                info = str,
-                stack = stack,
-                logType = (int)LogType.Warning
-            };
-
-            return logData;
+            AddLog(str, stack, LogType.Warning, editorType);
         }
 
-        public static TransferLogData LogError(string str)
+        public static void LogError(string str, UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor)
         {
             string stack = new StackTrace().ToString();
-            AddLog(str, stack, LogType.Error);
-
-            TransferLogData logData = new TransferLogData
-            {
-                info = str,
-                stack = stack,
-                logType = (int)LogType.Warning
-            };
-
-            return logData;
+            AddLog(str, stack, LogType.Error, editorType);
         }
     }
 }
