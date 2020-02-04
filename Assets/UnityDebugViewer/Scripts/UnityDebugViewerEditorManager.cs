@@ -44,11 +44,17 @@ namespace UnityDebugViewer
             }
         }
 
+        private static UnityDebugViewerEditor _editorForceToActive = null;
         [SerializeField]
         public UnityDebugViewerEditor activeEditor
         {
             get
             {
+                if(_editorForceToActive != null)
+                {
+                    activeEditorType = _editorForceToActive.type;
+                    _editorForceToActive = null;
+                }
                 return GetEditor(activeEditorType);
             }
         }
@@ -74,6 +80,11 @@ namespace UnityDebugViewer
         [SerializeField]
         private List<UnityDebugViewerEditor> serializeValueList = new List<UnityDebugViewerEditor>();
 
+
+        public static void ForceActiveEditor(UnityDebugViewerEditorType type)
+        {
+            _editorForceToActive = GetEditor(type);
+        }
 
         public static UnityDebugViewerEditor GetEditor(UnityDebugViewerEditorType type)
         {

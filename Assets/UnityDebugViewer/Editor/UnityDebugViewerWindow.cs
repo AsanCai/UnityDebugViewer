@@ -1,12 +1,46 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
-using System.Text.RegularExpressions;
-using System.Diagnostics;
 
 namespace UnityDebugViewer
 {
+    [InitializeOnLoad]
+    public class CompileListener : ScriptableObject
+    {
+        /// <summary>
+        /// when compile successfull and finised, this method will be called
+        /// </summary>
+        static CompileListener()
+        {
+            /// Reset all log generated caused by compilation
+            UnityDebugViewerEditorManager.GetEditor(UnityDebugViewerEditorType.Editor).ResetCompilingLog();
+
+            StartReceiveLogMessage();
+        }
+
+        public static void StartReceiveLogMessage()
+        {
+            Application.logMessageReceivedThreaded -= LogMessageReceivedHandler;
+            Application.logMessageReceivedThreaded += LogMessageReceivedHandler;
+        }
+
+        public static void StopReceiveLogMessage()
+        {
+            Application.logMessageReceivedThreaded -= LogMessageReceivedHandler;
+        }
+
+        private static void LogMessageReceivedHandler(string info, string stackTrace, LogType type)
+        {
+            if (type == LogType.Error || type == LogType.Assert || type == LogType.Exception)
+            {
+                UnityDebugViewerEditorManager.ForceActiveEditor(UnityDebugViewerEditorType.Editor);
+            }
+
+            UnityDebugViewerLogger.AddEditorLog(info, stackTrace, type);
+        }
+    }
+
     /// <summary>
     /// 负责绘制窗口
     /// </summary>
@@ -17,7 +51,8 @@ namespace UnityDebugViewer
         private int selectedLogIndex;
         private int selectedStackIndex;
 
-        private bool isPlaying;
+        private bool isPlaying = false;
+        private bool isCompiling = false;
 
         private Rect upperPanel;
         private Rect lowerPanel;
@@ -194,8 +229,7 @@ namespace UnityDebugViewer
             showLog = PlayerPrefs.GetInt(ShowLogPref, 0) == 1;
             showWarning = PlayerPrefs.GetInt(ShowWarningPref, 0) == 1;
             showError = PlayerPrefs.GetInt(ShowErrorPref, 0) == 1;
-
-            Application.logMessageReceivedThreaded += LogMessageReceivedHandler;
+            
 #if UNITY_2017_2_OR_NEWER
             EditorApplication.playModeStateChanged += PlayModeStateChangeHandler;
 #else
@@ -205,7 +239,6 @@ namespace UnityDebugViewer
 
         private void OnDestroy()
         {
-            Application.logMessageReceivedThreaded -= LogMessageReceivedHandler;
 #if UNITY_2017_2_OR_NEWER
             EditorApplication.playModeStateChanged -= PlayModeStateChangeHandler;
 #else
@@ -215,6 +248,12 @@ namespace UnityDebugViewer
 
         private void OnInspectorUpdate()
         {
+            if(isCompiling == false && EditorApplication.isCompiling)
+            {
+                StartCompiling();
+            }
+            isCompiling = EditorApplication.isCompiling;
+
             // Call Repaint on OnInspectorUpdate as it repaints the windows
             // less times as if it was OnGUI/Update
             Repaint();
@@ -284,24 +323,13 @@ namespace UnityDebugViewer
                             GUI.enabled = !startForwardProcess;
                             if (GUILayout.Button(new GUIContent("Start"), EditorStyles.toolbarButton))
                             {
-                                startForwardProcess = UnityDebugViewerADB.StartForwardProcess(pcPort, phonePort);
-                                if (startForwardProcess)
-                                {
-                                    int port = 0;
-                                    if(int.TryParse(pcPort, out port))
-                                    {
-                                        UnityDebugViewerTcp.ConnectToServer("127.0.0.1", port);
-                                        UnityDebugViewerLogger.Log(string.Format("Connect to 127.0.0.1:{0} successfully!", port));
-                                    }
-                                }
+                                StartADBForward();
                             }
 
                             GUI.enabled = startForwardProcess;
                             if (GUILayout.Button(new GUIContent("Stop"), EditorStyles.toolbarButton))
                             {
-                                UnityDebugViewerTcp.Disconnect();
-                                UnityDebugViewerADB.StopForwardProcess();
-                                startForwardProcess = false;
+                                StopADBForward();
                             }
 
                             GUI.enabled = true;
@@ -312,18 +340,13 @@ namespace UnityDebugViewer
                             GUI.enabled = !startLogcatProcess;
                             if (GUILayout.Button(new GUIContent("Start"), EditorStyles.toolbarButton))
                             {
-                                startLogcatProcess = UnityDebugViewerADB.StartLogCatProcess(LogcatDataHandler/*, "Unity"*/);
-                                if (startLogcatProcess)
-                                {
-                                    UnityDebugViewerLogger.Log("Start logcat process successfully!");
-                                }
+                                StartADBLogcat();
                             }
 
                             GUI.enabled = startLogcatProcess;
                             if (GUILayout.Button(new GUIContent("Stop"), EditorStyles.toolbarButton))
                             {
-                                UnityDebugViewerADB.StopLogCatProcess();
-                                startLogcatProcess = false;
+                                StopADBLogcat();
                             }
 
                             GUI.enabled = true;
@@ -379,23 +402,44 @@ namespace UnityDebugViewer
                         for (int i = 0; i < logList.Count; i++)
                         {
                             var log = logList[i];
+                            if(log == null)
+                            {
+                                continue;
+                            }
+
                             int num = this.editorManager.activeEditor.GetLogNum(log);
                             if (ShouldDisplay(log.type) && DrawLogBox(log, i % 2 == 0, num, this.collapse))
                             {
+                                /// update selected log
                                 if (this.editorManager.activeEditor.selectedLog != null)
                                 {
                                     this.editorManager.activeEditor.selectedLog.isSelected = false;
                                 }
-
                                 log.isSelected = true;
                                 this.editorManager.activeEditor.selectedLog = log;
 
-                                this.selectedLogIndex = i;
+                                /// try to open source file of the log
+                                if (this.selectedLogIndex == i)
+                                {
+                                    if (EditorApplication.timeSinceStartup - lastClickTime < DOUBLE_CLICK_INTERVAL)
+                                    {
+                                        UnityDebugViewerEditorUtility.JumpToSource(log);
+                                        lastClickTime = 0;
+                                    }
+                                    else
+                                    {
+                                        lastClickTime = EditorApplication.timeSinceStartup;
+                                    }
+                                }
+                                else
+                                {
+                                    this.selectedLogIndex = i;
+                                    lastClickTime = EditorApplication.timeSinceStartup;
+                                }
                             }
                         }
 
-                        /// 有新的log，并且开启了"Auto Scroll"
-                        /// 需要强制滚动至底部
+                        /// if "Auto Scroll" is selected, then force scroll to the bottom when new log is added
                         if (this.preLogNum != logList.Count && this.autoScroll)
                         {
                             upperPanelScroll.y = Mathf.Infinity;
@@ -414,9 +458,9 @@ namespace UnityDebugViewer
 
             GUILayout.BeginArea(lowerPanel);
             {
-                if (this.editorManager.activeEditor.selectedLog != null)
+                var log = this.editorManager.activeEditor.selectedLog;
+                if (log != null && ShouldDisplay(log.type))
                 {
-                    var log = this.editorManager.activeEditor.selectedLog;
                     textAreaStyle.normal.background = bgTextArea;
                     string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
                     GUILayout.TextArea(textStr, textAreaStyle, GUILayout.ExpandWidth(true));
@@ -440,6 +484,7 @@ namespace UnityDebugViewer
 
                             if (DrawStackBox(stack, i % 2 == 0))
                             {
+                                /// try to open the source file of logStack
                                 if (selectedStackIndex == i)
                                 {
                                     if (EditorApplication.timeSinceStartup - lastClickTime < DOUBLE_CLICK_INTERVAL)
@@ -505,10 +550,10 @@ namespace UnityDebugViewer
             GUILayout.BeginHorizontal(logBoxStyle);
             {
                 click = GUILayout.Button(new GUIContent(content, icon), logBoxStyle, GUILayout.ExpandWidth(true), GUILayout.Height(30));
+                Rect buttonRect = GUILayoutUtility.GetLastRect();
 
                 if (isCollapsed)
                 {
-                    Rect buttonRect = GUILayoutUtility.GetLastRect();
                     GUIContent numContent = new GUIContent(num.ToString());
                     GUIStyle numStyle = GUI.skin.GetStyle("CN CountBadge");
 
@@ -579,9 +624,53 @@ namespace UnityDebugViewer
             }
         }
 
-        private void LogMessageReceivedHandler(string info, string stackTrace, LogType type)
+        private void StartADBForward()
         {
-            UnityDebugViewerLogger.AddEditorLog(info, stackTrace, type);
+            startForwardProcess = UnityDebugViewerADB.StartForwardProcess(pcPort, phonePort);
+            if (startForwardProcess)
+            {
+                int port = 0;
+                if (int.TryParse(pcPort, out port))
+                {
+                    UnityDebugViewerTcp.ConnectToServer("127.0.0.1", port);
+                    UnityDebugViewerLogger.Log(string.Format("Connect to 127.0.0.1:{0} successfully!", port));
+                }
+            }
+        }
+
+        private void StopADBForward()
+        {
+            UnityDebugViewerTcp.Disconnect();
+            UnityDebugViewerADB.StopForwardProcess();
+            startForwardProcess = false;
+        }
+
+        private void StartADBLogcat()
+        {
+            startLogcatProcess = UnityDebugViewerADB.StartLogCatProcess(LogcatDataHandler/*, "Unity"*/);
+
+        }
+
+        private void StopADBLogcat()
+        {
+            UnityDebugViewerADB.StopLogCatProcess();
+            startLogcatProcess = false;
+        }
+
+        private void StartCompiling()
+        {
+            /// Reset the log generated caused by last compilation
+            UnityDebugViewerEditorManager.GetEditor(UnityDebugViewerEditorType.Editor).ResetCompilingLog();
+
+            if (startForwardProcess)
+            {
+                StopADBForward();
+            }
+
+            if (startLogcatProcess)
+            {
+                StopADBLogcat();
+            }
         }
 
         private void PlayModeStateChangeHandler(PlayModeStateChange state)

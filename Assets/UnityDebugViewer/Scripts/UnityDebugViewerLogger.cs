@@ -48,11 +48,21 @@ namespace UnityDebugViewer
         /// <summary>
         /// 匹配Unity堆栈信息
         /// </summary>
-        public const string UNITY_STACK_REGEX = @"(?<className>[\w]+):(?<functionName>[\w]+\(.*\))[\s]*\([at]*\s*(?<filePath>([\w]:/)?([\w]+/)*[\w]+.[\w]+)\:(?<lineNumber>[\d]+)\)";
+        public const string UNITY_STACK_REGEX = @"(?<className>[\w]+):(?<functionName>[\w]+\(.*\))[\s]*\([at]*\s*(?<filePath>(.+:[\\/])?(.+[\\/])*[\w]+\.[\w]+)\:(?<lineNumber>[\d]+)\)";
+
+        public const string UNITY_COMPILE_LOG_REGEX = @"(?<filePath>(.+:[\\/])?(.+[\\/])*[\w]+\.[\w]+)\((?<lineNumber>[\d]+).+\):";
 
         public const string LOGCAT_REGEX = @"(?<time>[\d]+-[\d]+[\s]*[\d]+:[\d]+:[\d]+.[\d]+)[\s]*(?<logType>\w)/(?<filter>[\w]*)[\s]*\([\s\d]*\)[\s:]*";
+        
+        /// <summary>
+        /// Mark whether the log is selected
+        /// </summary>
+        public bool isSelected = false;
 
-        public bool isSelected;
+        /// <summary>
+        /// Mark whether the log is caused by compilation
+        /// </summary>
+        public bool isCompilingLog { get; private set; }
 
         public string info { get; private set; }
         public string extraInfo { get; private set; }
@@ -73,15 +83,24 @@ namespace UnityDebugViewer
             }
         }
 
-        public LogData(string info, string stack, LogType type, bool isSelected = false)
+
+        public LogData(string info, string stack, LogType type)
         {
-            this.isSelected = isSelected;
             this.info = info;
             this.type = type;
             this.stackMessage = stack;
+            this.isCompilingLog = false;
 
             if (string.IsNullOrEmpty(stack))
             {
+                bool isMatch = Regex.IsMatch(info, UNITY_COMPILE_LOG_REGEX);
+                if (isMatch)
+                {
+                    Match match = Regex.Match(info, UNITY_COMPILE_LOG_REGEX);
+                    this.stackList.Add(new LogStackData(match));
+                    this.info = Regex.Replace(info, UNITY_COMPILE_LOG_REGEX, "").Trim();
+                    this.isCompilingLog = true;
+                }
                 return;
             }
             MatchCollection matchList = Regex.Matches(stack, UNITY_STACK_REGEX);
@@ -100,9 +119,8 @@ namespace UnityDebugViewer
         }
 
 
-        public LogData(string info, string extraInfo, List<StackFrame> stackFrameList, LogType logType, bool isSelected = false)
+        public LogData(string info, string extraInfo, List<StackFrame> stackFrameList, LogType logType)
         {
-            this.isSelected = isSelected;
             this.info = info;
             this.type = logType;
             this.extraInfo = extraInfo;
@@ -121,14 +139,18 @@ namespace UnityDebugViewer
             }
         }
 
-        public LogData(string info, string extraInfo, string stack, List<LogStackData> stackList, LogType logType, bool isSelected = false)
+        public LogData(string info, string extraInfo, string stack, List<LogStackData> stackList, LogType logType)
         {
             this.info = info;
             this.extraInfo = extraInfo;
             this.stackMessage = stack;
             this.stackList.AddRange(stackList);
             this.type = logType;
-            this.isSelected = isSelected;
+        }
+
+        public void ResetCompilingState()
+        {
+            isCompilingLog = false;
         }
 
         public string GetKey()
@@ -149,7 +171,7 @@ namespace UnityDebugViewer
 
         public LogData Clone()
         {
-            LogData log = new LogData(this.info, this.extraInfo, this.stackMessage, this.stackList, this.type, this.isSelected);
+            LogData log = new LogData(this.info, this.extraInfo, this.stackMessage, this.stackList, this.type);
             return log;
         }
     }
@@ -171,14 +193,23 @@ namespace UnityDebugViewer
         public LogStackData(Match match)
         {
             this.className = match.Result("${className}");
+            if (this.className.Equals("${className}"))
+            {
+                this.className = "Unknow Class";
+            }
             this.functionName = match.Result("${functionName}");
-            this.filePath = UnityDebugViewerEditorUtility.GetSystemFilePath(match.Result("${filePath}"));
-
+            if (this.functionName.Equals("${functionName}"))
+            {
+                this.functionName = "Unknow Method";
+            }
+            
+            this.filePath = UnityDebugViewerEditorUtility.ConvertToSystemFilePath(match.Result("${filePath}"));
             string lineNumberStr = match.Result("${lineNumber}");
             int lineNumber;
             this.lineNumber = int.TryParse(lineNumberStr, out lineNumber) ? lineNumber : -1;
 
             this.fullStackMessage = string.Format("{0}:{1} (at {2}:{3})", this.className, this.functionName, this.filePath, this.lineNumber);
+
             this.sourceContent = String.Empty;
         }
 
@@ -282,18 +313,18 @@ namespace UnityDebugViewer
                 string logType = match.Result("${logType}").ToUpper();
                 string tag = match.Result("${tag}");
                 string time = match.Result("${time}");
-                string message = Regex.Replace(logcat, LogData.LOGCAT_REGEX, "");
+                string info = Regex.Replace(logcat, LogData.LOGCAT_REGEX, "");
 
                 switch (logType)
                 {
                     case "I":
-                        AddLog(message, string.Empty, LogType.Log, editorType);
+                        AddLog(info, string.Empty, LogType.Log, editorType);
                         break;
                     case "W":
-                        AddLog(message, string.Empty, LogType.Warning, editorType);
+                        AddLog(info, string.Empty, LogType.Warning, editorType);
                         break;
                     case "E":
-                        AddLog(message, string.Empty, LogType.Error, editorType);
+                        AddLog(info, string.Empty, LogType.Error, editorType);
                         break;
                     default:
                         break;

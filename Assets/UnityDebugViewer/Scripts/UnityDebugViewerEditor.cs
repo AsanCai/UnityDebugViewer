@@ -106,6 +106,7 @@ namespace UnityDebugViewer
         [SerializeField]
         private List<CollapsedLogData> serializeValueList = new List<CollapsedLogData>();
 
+        [SerializeField]
         public LogData selectedLog = null;
         #endregion
 
@@ -140,6 +141,21 @@ namespace UnityDebugViewer
 
         public void ClearLog()
         {
+            List<LogData> interErrorLogList = new List<LogData>();
+            for (int i = 0; i < logList.Count; i++)
+            {
+                var log = logList[i];
+                if (log == null || log.type == LogType.Log || log.type == LogType.Warning)
+                {
+                    continue;
+                }
+
+                if (log.isCompilingLog)
+                {
+                    interErrorLogList.Add(log);
+                }
+            }
+
             logList.Clear();
             collapsedLogList.Clear();
             collapsedLogDic.Clear();
@@ -148,6 +164,11 @@ namespace UnityDebugViewer
             logNum = 0;
             warningNum = 0;
             errorNum = 0;
+
+            for(int i = 0; i < interErrorLogList.Count; i++)
+            {
+                AddLog(interErrorLogList[i]);
+            }
         }
 
         public int GetLogNum(LogData data)
@@ -160,6 +181,27 @@ namespace UnityDebugViewer
             }
 
             return num;
+        }
+
+        /// <summary>
+        /// reset all log caused by compilation
+        /// </summary>
+        public void ResetCompilingLog()
+        {
+            for (int i = 0; i < logList.Count; i++)
+            {
+                var log = logList[i];
+                if (log == null)
+                {
+                    continue;
+                }
+
+                if (log.isCompilingLog)
+                {
+                    log.ResetCompilingState();
+                    Debug.Log(string.Format("Reset {0}", log.info));
+                }
+            }
         }
 
         public void AddLog(LogData data)
@@ -180,6 +222,7 @@ namespace UnityDebugViewer
             }
             logList.Add(data);
 
+            /// add collapsed log data
             CollapsedLogData collapsedLogData;
             string key = data.GetKey();
             var cloneLog = data.Clone();
