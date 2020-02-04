@@ -5,9 +5,6 @@ using UnityEditorInternal;
 
 namespace UnityDebugViewer
 {
-    /// <summary>
-    /// 为UnityDebugViewerWindow提供与Editor相关的操作
-    /// </summary>
     public static class UnityDebugViewerEditorUtility
     {
         public const char UnityInternalDirectorySeparator = '/';

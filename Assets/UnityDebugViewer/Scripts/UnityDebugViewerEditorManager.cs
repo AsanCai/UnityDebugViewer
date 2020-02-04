@@ -12,6 +12,9 @@ namespace UnityDebugViewer
         LogFile
     }
 
+    /// <summary>
+    /// Manage all UnityDebugViewerEditor binded to UnityDebugViewerWindow
+    /// </summary>
     [Serializable]
     public class UnityDebugViewerEditorManager : ScriptableObject, ISerializationCallbackReceiver
     {
@@ -60,7 +63,7 @@ namespace UnityDebugViewer
         }
 
         /// <summary>
-        /// dictionary无法持久保存，需要手动序列化
+        /// dictionary cannot be serilized
         /// </summary>
         private static Dictionary<int, UnityDebugViewerEditor> _editorDic;
         private static Dictionary<int, UnityDebugViewerEditor> editorDic
@@ -120,7 +123,6 @@ namespace UnityDebugViewer
         }
 
         
-
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {
             this.serializeKeyList.Clear();

@@ -1,12 +1,75 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace UnityDebugViewer
 {
+    [Serializable]
+    public struct LogFilter
+    {
+        public bool collapse;
+        public bool showLog;
+        public bool showWarning;
+        public bool showError;
+        public string searchText;
+
+        public bool Equals(LogFilter filter)
+        {
+            return this.collapse == filter.collapse && this.showLog == filter.showLog && this.showWarning == filter.showWarning && this.showError == filter.showError && this.searchText.Equals(filter.searchText);
+        }
+
+        public bool ShouldDisplay(LogData log)
+        {
+            bool canDisplayInType;
+            switch (log.type)
+            {
+                case LogType.Log:
+                    canDisplayInType = this.showLog;
+                    break;
+
+                case LogType.Warning:
+                    canDisplayInType = this.showWarning;
+                    break;
+                case LogType.Error:
+                case LogType.Exception:
+                case LogType.Assert:
+                    canDisplayInType = this.showError;
+                    break;
+                default:
+                    canDisplayInType = false;
+                    break;
+            }
+
+            if (canDisplayInType)
+            {
+                if (string.IsNullOrEmpty(searchText))
+                {
+                    return true;
+                }
+                else
+                {
+                    if(Regex.IsMatch(log.info, searchText))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        /// Lowercase and try again
+                        return Regex.IsMatch(log.info.ToLower(), searchText.ToLower());
+                    }
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+
     /// <summary>
-    /// 为UnityDebugViewerWindow提供数据，UnityDebugViewerWindow可以绑定多个UnityDebugViewerEditor
+    /// The backend of UnityDebugViewer and provide data for UnityDebugViewerWindow
     /// </summary>
     [Serializable]
     public class UnityDebugViewerEditor : ScriptableObject, ISerializationCallbackReceiver
@@ -58,7 +121,7 @@ namespace UnityDebugViewer
         }
 
         protected List<LogData> _logList = null;
-        public List<LogData> logList
+        private List<LogData> logList
         {
             get
             {
@@ -72,7 +135,7 @@ namespace UnityDebugViewer
         }
 
         protected List<LogData> _collapsedLogList = null;
-        public List<LogData> collapsedLogList
+        private List<LogData> collapsedLogList
         {
             get
             {
@@ -105,6 +168,27 @@ namespace UnityDebugViewer
         private List<string> serializeKeyList = new List<string>();
         [SerializeField]
         private List<CollapsedLogData> serializeValueList = new List<CollapsedLogData>();
+
+
+        /// <summary>
+        /// the log list used to display by UnityDebugViewerWindow
+        /// </summary>
+        private List<LogData> _filteredLogList = null;
+        private List<LogData> filteredLogList
+        {
+            get
+            {
+                if(_filteredLogList == null)
+                {
+                    _filteredLogList = new List<LogData>();
+                }
+
+                return _filteredLogList;
+            }
+        }
+        [SerializeField]
+        private LogFilter logFilter;
+
 
         [SerializeField]
         public LogData selectedLog = null;
@@ -159,6 +243,7 @@ namespace UnityDebugViewer
             logList.Clear();
             collapsedLogList.Clear();
             collapsedLogDic.Clear();
+            filteredLogList.Clear();
 
             selectedLog = null;
             logNum = 0;
@@ -183,6 +268,33 @@ namespace UnityDebugViewer
             return num;
         }
 
+        public List<LogData> GetFilteredLogList(LogFilter filter, bool forceUpdate = false)
+        {
+            if (forceUpdate || !this.logFilter.Equals(filter))
+            {
+                this.filteredLogList.Clear();
+
+                var logList = filter.collapse ? this.collapsedLogList : this.logList;
+                for(int i = 0; i < logList.Count; i++)
+                {
+                    var log = logList[i];
+                    if(log == null)
+                    {
+                        continue;
+                    }
+
+                    if (filter.ShouldDisplay(log))
+                    {
+                        this.filteredLogList.Add(log);
+                    }
+                }
+
+                this.logFilter = filter;
+            }
+
+            return filteredLogList;
+        }
+
         /// <summary>
         /// reset all log caused by compilation
         /// </summary>
@@ -199,7 +311,6 @@ namespace UnityDebugViewer
                 if (log.isCompilingLog)
                 {
                     log.ResetCompilingState();
-                    Debug.Log(string.Format("Reset {0}", log.info));
                 }
             }
         }
@@ -238,6 +349,11 @@ namespace UnityDebugViewer
                 collapsedLogData.count = 1;
                 collapsedLogDic.Add(key, collapsedLogData);
                 collapsedLogList.Add(cloneLog);
+            }
+
+            if (logFilter.ShouldDisplay(data))
+            {
+                filteredLogList.Add(data);
             }
         }
 

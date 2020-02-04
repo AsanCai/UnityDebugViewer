@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace UnityDebugViewer
 {
-    public static class UnityDebugViewerTcp
+    public static class UnityDebugViewerTransfer
     {
         private static IPAddress ipAddress;
         private static IPEndPoint ipEndPoint;
@@ -40,7 +40,7 @@ namespace UnityDebugViewer
                 byte[] receivedBytes = new byte[receiveLength];
                 Array.Copy(receiveBuffer, receivedBytes, receiveLength);
 
-                TransferLogData data = UnityDebugViewerUtils.BytesToStruct<TransferLogData>(receivedBytes);
+                TransferLogData data = UnityDebugViewerTransferUtility.BytesToStruct<TransferLogData>(receivedBytes);
                 UnityDebugViewerLogger.AddTransferLog(data);
             }
         }
@@ -55,30 +55,6 @@ namespace UnityDebugViewer
 
             serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             serverSocket.Connect(ipEndPoint);
-
-            ///// 输出初次连接收到的字符串
-            //receiveLength = serverSocket.Receive(receiveBuffer);
-            //if (receiveLength == 0)
-            //{
-            //    return;
-            //}
-
-            //byte[] receivedBytes = new byte[receiveLength];
-            //Array.Copy(receiveBuffer, receivedBytes, receiveLength);
-
-            //TransferLogData data = UnityDebugViewerUtils.BytesToStruct<TransferLogData>(receivedBytes);
-            //UnityDebugViewerLogger.AddLog(data);
-        }
-
-        private static void SocketSend(string data)
-        {
-            if (serverSocket == null)
-            {
-                return;
-            }
-
-            byte[] sendData = Encoding.UTF8.GetBytes(data);
-            serverSocket.Send(sendData);
         }
 
         public static void Disconnect()

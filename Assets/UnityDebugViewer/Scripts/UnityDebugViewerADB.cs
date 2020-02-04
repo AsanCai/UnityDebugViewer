@@ -3,23 +3,36 @@ using System.IO;
 using System.Diagnostics;
 using System.Text;
 using UnityEditor;
+using UnityEngine;
 
 namespace UnityDebugViewer
 {
-    public static class UnityDebugViewerADB
+    public class UnityDebugViewerADB : ScriptableObject
     {
         private static Process logCatProcess;
         private static string deviceID;
         public const string DEFAULT_PC_PORT = "50000";
         public const string DEFAULT_PHONE_PORT = "50000";
 
+
+        private const string DEFAULT_ADB_PATH = "ADB";
         private const string LOGCAT_CLEAR = "logcat -c";
-        //private const string LOGCAT_ARGUMENTS_WHOLE_UNITY = "logcat -s Unity";
         private const string LOGCAT_ARGUMENTS = "logcat -v time";
         private const string LOGCAT_ARGUMENTS_WITH_FILTER = "logcat -v time -s {0}";
         private const string ADB_DEVICE_CHECK = "devices";
         private const string START_ADB_FORWARD = "forward tcp:{0} tcp:{1}";
         private const string STOP_ADB_FORWARD = "forward --remove-all";
+
+        private static UnityDebugViewerADB instance;
+        public static UnityDebugViewerADB GetInstance()
+        {
+            if(instance == null)
+            {
+                instance = ScriptableObject.CreateInstance<UnityDebugViewerADB>();
+            }
+
+            return instance;
+        }
 
         public static void RunClearCommand()
         {
@@ -90,10 +103,6 @@ namespace UnityDebugViewer
                     {
                         logCatProcess.Kill();
                     }
-                }
-                catch (InvalidOperationException)
-                {
-                    // Just ignore it.
                 }
                 finally
                 {
@@ -218,6 +227,20 @@ namespace UnityDebugViewer
                 adbPath = Path.Combine(androidSdkRoot, Path.Combine("platform-tools", "adb"));
             }
 #endif
+
+            if (string.IsNullOrEmpty(adbPath))
+            {
+                MonoScript ms = MonoScript.FromScriptableObject(UnityDebugViewerADB.GetInstance());
+                string filePath = AssetDatabase.GetAssetPath(ms);
+                filePath = UnityDebugViewerEditorUtility.ConvertToSystemFilePath(filePath);
+
+                string currentScriptDirectory = Path.GetDirectoryName(filePath);
+                string parentDirectory = Directory.GetParent(currentScriptDirectory).FullName;
+
+                string defaultAdbPath = UnityDebugViewerEditorUtility.ConvertToSystemFilePath(DEFAULT_ADB_PATH);
+                adbPath = Path.Combine(Path.Combine(parentDirectory, defaultAdbPath), "adb");
+            }
+
             return adbPath;
         }
     }

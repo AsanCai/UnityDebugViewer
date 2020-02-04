@@ -42,7 +42,8 @@ namespace UnityDebugViewer
     }
 
     /// <summary>
-    /// 负责绘制窗口
+    /// The frontend of UnityDebugViewer
+    /// UnityDebugViewerWindow can bind multiple UnityDebugViewerEditor, but only one of them can be actived at a time
     /// </summary>
     public class UnityDebugViewerWindow : EditorWindow
     {
@@ -80,6 +81,9 @@ namespace UnityDebugViewer
 
         [SerializeField]
         private UnityDebugViewerEditorManager editorManager;
+        [SerializeField]
+        private LogFilter logFilter;
+        private bool shouldUpdateLogFilter;
 
         private string pcPort = string.Empty;
         private string phonePort = string.Empty;
@@ -87,6 +91,7 @@ namespace UnityDebugViewer
         private bool onlyShowUnityLog = true;
         private bool startLogcatProcess = false;
         private int preLogNum = 0;
+        private string searchText = string.Empty;
 
         private Vector2 upperPanelScroll;
         private Vector2 lowerPanelScroll;
@@ -229,7 +234,14 @@ namespace UnityDebugViewer
             showLog = PlayerPrefs.GetInt(ShowLogPref, 0) == 1;
             showWarning = PlayerPrefs.GetInt(ShowWarningPref, 0) == 1;
             showError = PlayerPrefs.GetInt(ShowErrorPref, 0) == 1;
-            
+
+            logFilter.showLog = showLog;
+            logFilter.showWarning = showWarning;
+            logFilter.showError = showError;
+            logFilter.collapse = collapse;
+            logFilter.searchText = searchText;
+            shouldUpdateLogFilter = true;
+
 #if UNITY_2017_2_OR_NEWER
             EditorApplication.playModeStateChanged += PlayModeStateChangeHandler;
 #else
@@ -284,15 +296,27 @@ namespace UnityDebugViewer
 
                     GUILayout.Space(5);
 
-                    collapse = GUILayout.Toggle(collapse, new GUIContent("Collapse"), EditorStyles.toolbarButton);
-                    clearOnPlay = GUILayout.Toggle(clearOnPlay, new GUIContent("Clear On Play"), EditorStyles.toolbarButton);
-                    errorPause = GUILayout.Toggle(errorPause, new GUIContent("Error Pause"), EditorStyles.toolbarButton);
-                    autoScroll = GUILayout.Toggle(autoScroll, new GUIContent("Auto Scroll"), EditorStyles.toolbarButton);
+                    EditorGUI.BeginChangeCheck();
+                    this.collapse = GUILayout.Toggle(this.collapse, new GUIContent("Collapse"), EditorStyles.toolbarButton);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        this.logFilter.collapse = this.collapse;
+                        this.shouldUpdateLogFilter = true;
+                    }
+                    this.clearOnPlay = GUILayout.Toggle(this.clearOnPlay, new GUIContent("Clear On Play"), EditorStyles.toolbarButton);
+                    this.errorPause = GUILayout.Toggle(this.errorPause, new GUIContent("Error Pause"), EditorStyles.toolbarButton);
+                    this.autoScroll = GUILayout.Toggle(this.autoScroll, new GUIContent("Auto Scroll"), EditorStyles.toolbarButton);
 
                     GUILayout.Space(5);
 
                     Vector2 size = EditorStyles.toolbarPopup.CalcSize(new GUIContent(this.editorManager.activeEditorTypeStr));
+                    EditorGUI.BeginChangeCheck();
                     this.editorManager.activeEditorType = (UnityDebugViewerEditorType)EditorGUILayout.EnumPopup(this.editorManager.activeEditorType, EditorStyles.toolbarPopup, GUILayout.Width(size.x));
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        this.shouldUpdateLogFilter = true;
+                    }
+
                     switch (this.editorManager.activeEditorType)
                     {
                         case UnityDebugViewerEditorType.Editor:
@@ -352,34 +376,47 @@ namespace UnityDebugViewer
                             GUI.enabled = true;
                             break;
                         case UnityDebugViewerEditorType.LogFile:
+                            if (GUILayout.Button(new GUIContent("Browser"), EditorStyles.toolbarButton))
+                            {
+                                
+                            }
+
                             break;
                     }
 
                     GUILayout.FlexibleSpace();
 
-                    var _showLog = this.showLog;
-                    var _showWarning = this.showWarning;
-                    var _showError = this.showError;
+                    EditorGUI.BeginChangeCheck();
+                    this.searchText = GUILayout.TextField(this.searchText, GUI.skin.GetStyle("ToolbarSeachTextField"), GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
+                    if (GUILayout.Button("", GUI.skin.GetStyle("ToolbarSeachCancelButton")))
+                    {
+                        this.searchText = string.Empty;
+                    }
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        this.logFilter.searchText = this.searchText;
+                        this.shouldUpdateLogFilter = true;
+                    }
+                    
 
                     string logNum = this.editorManager.activeEditor.logNum.ToString();
                     string warningNum = this.editorManager.activeEditor.warningNum.ToString();
                     string errorNum = this.editorManager.activeEditor.errorNum.ToString();
 
+                    EditorGUI.BeginChangeCheck();
                     this.showLog = GUILayout.Toggle(this.showLog, new GUIContent(logNum, infoIconSmall), EditorStyles.toolbarButton);
                     this.showWarning = GUILayout.Toggle(this.showWarning, new GUIContent(warningNum, warningIconSmall), EditorStyles.toolbarButton);
                     this.showError = GUILayout.Toggle(this.showError, new GUIContent(errorNum, errorIconSmall), EditorStyles.toolbarButton);
-
-                    if (_showLog != this.showLog)
+                    if (EditorGUI.EndChangeCheck())
                     {
                         PlayerPrefs.SetInt(ShowLogPref, this.showLog ? 1 : 0);
-                    }
-                    if (_showWarning != this.showWarning)
-                    {
                         PlayerPrefs.SetInt(ShowWarningPref, this.showWarning ? 1 : 0);
-                    }
-                    if (_showError != this.showError)
-                    {
                         PlayerPrefs.SetInt(ShowErrorPref, this.showError ? 1 : 0);
+
+                        this.logFilter.showLog = this.showLog;
+                        this.logFilter.showWarning = this.showWarning;
+                        this.logFilter.showError = this.showError;
+                        this.shouldUpdateLogFilter = true;
                     }
                 }
                 GUILayout.EndHorizontal();
@@ -395,7 +432,8 @@ namespace UnityDebugViewer
             {
                 upperPanelScroll = GUILayout.BeginScrollView(upperPanelScroll);
                 {
-                    var logList = this.collapse ? this.editorManager.activeEditor.collapsedLogList : this.editorManager.activeEditor.logList;
+                    var logList = this.editorManager.activeEditor.GetFilteredLogList(this.logFilter, this.shouldUpdateLogFilter);
+                    this.shouldUpdateLogFilter = false;
 
                     if (logList != null)
                     {
@@ -408,7 +446,7 @@ namespace UnityDebugViewer
                             }
 
                             int num = this.editorManager.activeEditor.GetLogNum(log);
-                            if (ShouldDisplay(log.type) && DrawLogBox(log, i % 2 == 0, num, this.collapse))
+                            if (DrawLogBox(log, i % 2 == 0, num, this.collapse))
                             {
                                 /// update selected log
                                 if (this.editorManager.activeEditor.selectedLog != null)
@@ -459,7 +497,7 @@ namespace UnityDebugViewer
             GUILayout.BeginArea(lowerPanel);
             {
                 var log = this.editorManager.activeEditor.selectedLog;
-                if (log != null && ShouldDisplay(log.type))
+                if (log != null && this.logFilter.ShouldDisplay(log))
                 {
                     textAreaStyle.normal.background = bgTextArea;
                     string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
@@ -576,27 +614,6 @@ namespace UnityDebugViewer
             return GUILayout.Button(new GUIContent(content), stackBoxStyle, GUILayout.ExpandWidth(true));
         }
 
-        private bool ShouldDisplay(LogType type)
-        {
-            switch (type)
-            {
-                case LogType.Log:
-                    return this.showLog;
-
-                case LogType.Warning:
-                    return this.showWarning;
-
-                case LogType.Error:
-                case LogType.Exception:
-                case LogType.Assert:
-                    return this.showError;
-
-                default:
-                    return false;
-            }
-        }
-
-
         private void ProcessEvents(Event e)
         {
             switch (e.type)
@@ -632,7 +649,7 @@ namespace UnityDebugViewer
                 int port = 0;
                 if (int.TryParse(pcPort, out port))
                 {
-                    UnityDebugViewerTcp.ConnectToServer("127.0.0.1", port);
+                    UnityDebugViewerTransfer.ConnectToServer("127.0.0.1", port);
                     UnityDebugViewerLogger.Log(string.Format("Connect to 127.0.0.1:{0} successfully!", port));
                 }
             }
@@ -640,7 +657,7 @@ namespace UnityDebugViewer
 
         private void StopADBForward()
         {
-            UnityDebugViewerTcp.Disconnect();
+            UnityDebugViewerTransfer.Disconnect();
             UnityDebugViewerADB.StopForwardProcess();
             startForwardProcess = false;
         }
@@ -648,7 +665,6 @@ namespace UnityDebugViewer
         private void StartADBLogcat()
         {
             startLogcatProcess = UnityDebugViewerADB.StartLogCatProcess(LogcatDataHandler/*, "Unity"*/);
-
         }
 
         private void StopADBLogcat()

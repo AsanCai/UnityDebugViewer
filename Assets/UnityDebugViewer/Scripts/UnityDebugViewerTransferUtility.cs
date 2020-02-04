@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace UnityDebugViewer
 {
-    public static class UnityDebugViewerUtils
+    public static class UnityDebugViewerTransferUtility
     {
         public static byte[] StructToBytes(object data)
         {

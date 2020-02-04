@@ -18,7 +18,7 @@ public class TestScripts : MonoBehaviour
         timer += deltaTime;
         if (timer >= 1)
         {
-            UnityDebugViewerLogger.Log("logger: pass 1s");
+            UnityDebugViewerLogger.Log("pass 1s;");
             Debug.LogFormat("pass {0}s;", 1);
 
             timer = 0f;

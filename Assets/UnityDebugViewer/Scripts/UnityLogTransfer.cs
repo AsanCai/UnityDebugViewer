@@ -128,7 +128,7 @@ public class UnityLogTransfer : MonoBehaviour
         /// 连接成功则发送数据
         var logData = new TransferLogData(info, stacktrace, type);
 
-        byte[] sendData = UnityDebugViewerUtils.StructToBytes(logData);
+        byte[] sendData = UnityDebugViewerTransferUtility.StructToBytes(logData);
         SocketSend(sendData);
     }
 }
