@@ -45,6 +45,11 @@ namespace UnityDebugViewer
     [Serializable]
     public class LogData  
     {
+        /// <summary>
+        /// 匹配Unity堆栈信息
+        /// </summary>
+        public const string UNITY_STACK_REGEX = @"(?<className>[\w]+):(?<functionName>[\w]+\(.*\))[\s]*\([at]*\s*(?<filePath>([\w]:/)?([\w]+/)*[\w]+.[\w]+)\:(?<lineNumber>[\d]+)\)";
+
         public const string LOGCAT_REGEX = @"(?<time>[\d]+-[\d]+[\s]*[\d]+:[\d]+:[\d]+.[\d]+)[\s]*(?<logType>\w)/(?<filter>[\w]*)[\s]*\([\s\d]*\)[\s:]*";
 
         public bool isSelected;
@@ -52,65 +57,83 @@ namespace UnityDebugViewer
         public string info { get; private set; }
         public string extraInfo { get; private set; }
         public LogType type { get; private set; }
+        public string stackMessage { get; private set; }
 
-        private List<StackData> _stackList;
-        public List<StackData> stackList
+        private List<LogStackData> _stackList;
+        public List<LogStackData> stackList
         {
             get
             {
                 if(_stackList == null)
                 {
-                    _stackList = new List<StackData>();
+                    _stackList = new List<LogStackData>();
                 }
 
                 return _stackList;
             }
         }
 
-        private string _stack;
-        public string stack
-        {
-            get
-            {
-                return _stack;
-            }
-            private set
-            {
-                _stack = value;
-                if (string.IsNullOrEmpty(value))
-                {
-                    return;
-                }
-
-                MatchCollection matchList = Regex.Matches(_stack, StackData.STACK_REGEX);
-                this.stackList.Clear();
-                foreach (Match match in matchList)
-                {
-                    if(match == null)
-                    {
-                        continue;
-                    }
-                    this.stackList.Add(new StackData(match));
-                }
-
-                /// 获取额外信息
-                this.extraInfo = Regex.Replace(value, StackData.STACK_REGEX, "").Trim();
-            }
-        }
-        
-
         public LogData(string info, string stack, LogType type, bool isSelected = false)
         {
-            this.stack = stack;
-
             this.isSelected = isSelected;
             this.info = info;
             this.type = type;
+            this.stackMessage = stack;
+
+            if (string.IsNullOrEmpty(stack))
+            {
+                return;
+            }
+            MatchCollection matchList = Regex.Matches(stack, UNITY_STACK_REGEX);
+            this.stackList.Clear();
+            foreach (Match match in matchList)
+            {
+                if (match == null)
+                {
+                    continue;
+                }
+                this.stackList.Add(new LogStackData(match));
+            }
+
+            /// 获取额外信息
+            this.extraInfo = Regex.Replace(stack, UNITY_STACK_REGEX, "").Trim();
+        }
+
+
+        public LogData(string info, string extraInfo, List<StackFrame> stackFrameList, LogType logType, bool isSelected = false)
+        {
+            this.isSelected = isSelected;
+            this.info = info;
+            this.type = logType;
+            this.extraInfo = extraInfo;
+            this.stackMessage = extraInfo;
+
+            if (stackFrameList == null)
+            {
+                return;
+            }
+
+            for(int i = 0; i < stackFrameList.Count; i++)
+            {
+                var logStackData = new LogStackData(stackFrameList[i]);
+                this.stackMessage = string.Format("{0}\n{1}", this.stackMessage, logStackData.fullStackMessage);
+                this.stackList.Add(logStackData);
+            }
+        }
+
+        public LogData(string info, string extraInfo, string stack, List<LogStackData> stackList, LogType logType, bool isSelected = false)
+        {
+            this.info = info;
+            this.extraInfo = extraInfo;
+            this.stackMessage = stack;
+            this.stackList.AddRange(stackList);
+            this.type = logType;
+            this.isSelected = isSelected;
         }
 
         public string GetKey()
         {
-            string key = string.Format("{0}{1}{2}", info, stack, type);
+            string key = string.Format("{0}{1}{2}", info, stackMessage, type);
             return key;
         }
 
@@ -121,12 +144,12 @@ namespace UnityDebugViewer
                 return false;
             }
 
-            return this.info.Equals(data.info) && this.stack.Equals(data.stack) && this.type == data.type;
+            return this.info.Equals(data.info) && this.stackMessage.Equals(data.stackMessage) && this.type == data.type;
         }
 
         public LogData Clone()
         {
-            LogData log = new LogData(this.info, this.stack, this.type);
+            LogData log = new LogData(this.info, this.extraInfo, this.stackMessage, this.stackList, this.type, this.isSelected);
             return log;
         }
     }
@@ -135,41 +158,56 @@ namespace UnityDebugViewer
     /// 保存堆栈信息
     /// </summary>
     [Serializable]
-    public class StackData
+    public class LogStackData
     {
-        /// <summary>
-        /// 匹配堆栈信息的正则表达式
-        /// </summary>
-        public const string STACK_REGEX = @"(?<className>[\w]+):(?<functionName>[\w]+)\(\)\s\([at]+\s(?<fileDirectory>([a-zA-Z]:[\\/])([\s\.\-\w]+[\\/])*)(?<fileName>[\w]+.[\w]+):(?<lineNumber>[\d]+)\)";
-
         public string className { get; private set; }
         public string functionName { get; private set; }
-        public string fileDirectory { get; private set; }
-        public string fileName { get; private set; }
         public string filePath { get; private set; }
         public int lineNumber { get; private set; }
 
         public string fullStackMessage { get; private set; }
         public string sourceContent;
 
-        public StackData(Match match)
+        public LogStackData(Match match)
         {
-            this.fullStackMessage = match.Value;
             this.className = match.Result("${className}");
             this.functionName = match.Result("${functionName}");
-
-            this.fileDirectory = match.Result("${fileDirectory}");
-            this.fileName = match.Result("${fileName}");
-            this.filePath = Path.Combine(fileDirectory, fileName);
+            this.filePath = UnityDebugViewerEditorUtility.GetSystemFilePath(match.Result("${filePath}"));
 
             string lineNumberStr = match.Result("${lineNumber}");
             int lineNumber;
             this.lineNumber = int.TryParse(lineNumberStr, out lineNumber) ? lineNumber : -1;
 
+            this.fullStackMessage = string.Format("{0}:{1} (at {2}:{3})", this.className, this.functionName, this.filePath, this.lineNumber);
             this.sourceContent = String.Empty;
         }
 
-        public bool Equals(StackData data)
+        public LogStackData(StackFrame stackFrame)
+        {
+            var method = stackFrame.GetMethod();
+
+            string methodParam = string.Empty;
+            var paramArray = method.GetParameters();
+            if (paramArray != null)
+            {
+                string[] paramType = new string[paramArray.Length];
+                for (int index = 0; index < paramArray.Length; index++)
+                {
+                    paramType[index] = paramArray[index].ParameterType.Name;
+                }
+                methodParam = string.Join(", ", paramType);
+            }
+
+            this.className = method.DeclaringType.Name;
+            this.functionName = string.Format("{0}({1})", method.Name, methodParam); ;
+            this.filePath = stackFrame.GetFileName();
+            this.lineNumber = stackFrame.GetFileLineNumber();
+
+            this.fullStackMessage = string.Format("{0}:{1} (at {2}:{3})", this.className, this.functionName, this.filePath, this.lineNumber);
+            this.sourceContent = String.Empty;
+        }
+
+        public bool Equals(LogStackData data)
         {
             if(data == null)
             {
@@ -179,6 +217,28 @@ namespace UnityDebugViewer
             return fullStackMessage.Equals(data.fullStackMessage);
         }
     }
+
+    /// <summary>
+    /// 标记需要被忽略堆栈信息的方法
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method)]
+    public class IgnoreStackTrace : Attribute
+    {
+        public bool showAsExtraMessage { get; private set; }
+        public IgnoreStackTrace(bool show)
+        {
+            showAsExtraMessage = show;
+        }
+
+        /// <summary>
+        /// 默认不作为堆栈的extra message显示
+        /// </summary>
+        public IgnoreStackTrace()
+        {
+            showAsExtraMessage = false;
+        }
+    }
+
 
     public class UnityDebugViewerLogger
     {
@@ -247,28 +307,93 @@ namespace UnityDebugViewer
             AddLog(logData, editorType);
         }
 
+        public static void AddLog(string info, string extraMessage, List<StackFrame> stackFrameList, LogType type, UnityDebugViewerEditorType editorType)
+        {
+            var logData = new LogData(info, extraMessage, stackFrameList, type);
+            AddLog(logData, editorType);
+        }
+
         public static void AddLog(LogData data, UnityDebugViewerEditorType editorType)
         {
             /// 将log输出至指定的editor
             UnityDebugViewerEditorManager.GetEditor(editorType).AddLog(data);
         }
 
+        [IgnoreStackTrace(true)]
         public static void Log(string str, UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor)
         {
-            string stack = new StackTrace().ToString();
-            AddLog(str, stack, LogType.Log, editorType);
+            AddSystemLog(str, LogType.Log, editorType);
         }
 
+        [IgnoreStackTrace(true)]
         public static void LogWarning(string str, UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor)
         {
-            string stack = new StackTrace().ToString();
-            AddLog(str, stack, LogType.Warning, editorType);
+            AddSystemLog(str, LogType.Warning, editorType);
         }
 
+        [IgnoreStackTrace(true)]
         public static void LogError(string str, UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor)
         {
-            string stack = new StackTrace().ToString();
-            AddLog(str, stack, LogType.Error, editorType);
+            AddSystemLog(str, LogType.Error, editorType);
+        }
+
+        [IgnoreStackTrace]
+        private static void AddSystemLog(string str, LogType logType, UnityDebugViewerEditorType editorType)
+        {
+            string extraInfo = string.Empty;
+            var stackList = ParseSystemStackTrace(ref extraInfo);
+            AddLog(str, extraInfo, stackList, logType, editorType);
+        }
+
+        [IgnoreStackTrace]
+        private static List<StackFrame> ParseSystemStackTrace(ref string extraInfo)
+        {
+            List<StackFrame> stackFrameList = new List<StackFrame>();
+
+            StackTrace stackTrace = new StackTrace(true);
+            StackFrame[] stackFrames = stackTrace.GetFrames();
+
+            for (int i = 0; i < stackFrames.Length; i++)
+            {
+                StackFrame stackFrame = stackFrames[i];
+                var method = stackFrame.GetMethod();
+
+                if (!method.IsDefined(typeof(IgnoreStackTrace), true))
+                {
+                    /// 过滤掉所有Unity内部调用的方法
+                    if (method.Name.Equals("InternalInvoke"))
+                    {
+                        break;
+                    }
+
+                    stackFrameList.Add(stackFrame);
+                }
+                else
+                {
+                    foreach (object attributes in method.GetCustomAttributes(false))
+                    {
+                        IgnoreStackTrace ignoreAttr = (IgnoreStackTrace)attributes;
+                        if (ignoreAttr != null && ignoreAttr.showAsExtraMessage)
+                        {
+                            string methodParam = string.Empty;
+                            var paramArray = method.GetParameters();
+                            if (paramArray != null)
+                            {
+                                string[] paramType = new string[paramArray.Length];
+                                for (int index = 0; index < paramArray.Length; index++)
+                                {
+                                    paramType[index] = paramArray[index].ParameterType.Name;
+                                }
+                                methodParam = string.Join(", ", paramType);
+                            }
+
+                            extraInfo = string.Format("{0}:{1}({2})", method.DeclaringType.FullName, method.Name, methodParam);
+                        }
+                    }
+                }
+            }
+
+            return stackFrameList;
         }
     }
 }

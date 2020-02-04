@@ -299,9 +299,6 @@ namespace UnityDebugViewer
                             GUI.enabled = startForwardProcess;
                             if (GUILayout.Button(new GUIContent("Stop"), EditorStyles.toolbarButton))
                             {
-                                LogData nullObj = null;
-                                nullObj.Clone();
-
                                 UnityDebugViewerTcp.Disconnect();
                                 UnityDebugViewerADB.StopForwardProcess();
                                 startForwardProcess = false;
@@ -527,7 +524,7 @@ namespace UnityDebugViewer
         }
 
 
-        private bool DrawStackBox(StackData stack, bool isOdd)
+        private bool DrawStackBox(LogStackData stack, bool isOdd)
         {
             string content = string.Format("\n{0}\n{1}", stack.fullStackMessage, stack.sourceContent);
             stackBoxStyle.normal.background = isOdd ? boxgStackBgOdd : boxStackBgEven;

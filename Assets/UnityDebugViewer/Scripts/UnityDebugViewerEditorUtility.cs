@@ -17,7 +17,7 @@ namespace UnityDebugViewer
 
         public static bool JumpToSource(string filePath, int lineNumber)
         {
-            var validFilePath = GetValidFilePath(filePath);
+            var validFilePath = GetSystemFilePath(filePath);
             if (File.Exists(validFilePath))
             {
                 if(InternalEditorUtility.OpenFileAtLineExternal(validFilePath, lineNumber))
@@ -31,7 +31,7 @@ namespace UnityDebugViewer
 
         public static string GetSourceContent(string filePath, int lineNumber)
         {
-            var validFilePath = GetValidFilePath(filePath);
+            var validFilePath = GetSystemFilePath(filePath);
             if (!File.Exists(validFilePath))
             {
                 return string.Empty;
@@ -66,9 +66,11 @@ namespace UnityDebugViewer
             return souceContent;
         }
 
-        private static string GetValidFilePath(string filePath)
+        public static string GetSystemFilePath(string filePath)
         {
-            return filePath.Replace(UnityInternalDirectorySeparator, Path.DirectorySeparatorChar);
+            string systemFilePath = filePath.Replace(UnityInternalDirectorySeparator, Path.DirectorySeparatorChar);
+            systemFilePath = Path.Combine(Directory.GetCurrentDirectory(), systemFilePath);
+            return systemFilePath;
         }
 
         /// <summary>
