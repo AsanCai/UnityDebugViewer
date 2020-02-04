@@ -96,6 +96,39 @@ namespace UnityDebugViewer
             return souceContent;
         }
 
+        public static void ParseLogFile(string logFilePath)
+        {
+            if (!string.IsNullOrEmpty(logFilePath) && File.Exists(logFilePath))
+            {
+                var logFineLineArray = File.ReadAllLines(logFilePath);
+                if(logFineLineArray == null || logFineLineArray.Length == 0)
+                {
+                    return;
+                }
+
+                var logContent = string.Empty;
+                for(int i = 0; i < logFineLineArray.Length; i++)
+                {
+                    string line = logFineLineArray[i].Trim();
+                    if (string.IsNullOrEmpty(line))
+                    {
+                        UnityDebugViewerLogger.AddLogFileLog(logContent);
+                        logContent = string.Empty;
+                    }
+                    else
+                    {
+                        logContent = string.Format("{0}{1}\n", logContent, line);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(logContent))
+                {
+                    UnityDebugViewerLogger.AddLogFileLog(logContent);
+                }
+            }
+        }
+
+
         /// <summary>
         /// convert the format of the incoming file path to the format of system file path, and complete the incoming file path if necessary
         /// </summary>

@@ -333,6 +333,8 @@ namespace UnityDebugViewer
             }
             logList.Add(data);
 
+            bool addFilterLog = true;
+
             /// add collapsed log data
             CollapsedLogData collapsedLogData;
             string key = data.GetKey();
@@ -342,6 +344,9 @@ namespace UnityDebugViewer
                 collapsedLogData.count = collapsedLogDic[key].count + 1;
                 collapsedLogData.log = collapsedLogDic[key].log;
                 collapsedLogDic[key] = collapsedLogData;
+
+                /// if not collapse, then should add filter log although the log is collapsed
+                addFilterLog = !logFilter.collapse;
             }
             else
             {
@@ -351,7 +356,7 @@ namespace UnityDebugViewer
                 collapsedLogList.Add(cloneLog);
             }
 
-            if (logFilter.ShouldDisplay(data))
+            if (addFilterLog && logFilter.ShouldDisplay(data))
             {
                 filteredLogList.Add(data);
             }

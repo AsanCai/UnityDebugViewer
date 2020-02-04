@@ -91,6 +91,7 @@ namespace UnityDebugViewer
         private bool onlyShowUnityLog = true;
         private bool startLogcatProcess = false;
         private int preLogNum = 0;
+        private string logFilePath;
         private string searchText = string.Empty;
 
         private Vector2 upperPanelScroll;
@@ -376,11 +377,17 @@ namespace UnityDebugViewer
                             GUI.enabled = true;
                             break;
                         case UnityDebugViewerEditorType.LogFile:
+                            GUILayout.Label(new GUIContent("Log File Path:"), EditorStyles.label);
+
+                            this.logFilePath = EditorGUILayout.TextField(this.logFilePath, EditorStyles.toolbarTextField);
                             if (GUILayout.Button(new GUIContent("Browser"), EditorStyles.toolbarButton))
                             {
-                                
+                                this.logFilePath = EditorUtility.OpenFilePanel("Select log file", this.logFilePath, "txt,log");
                             }
-
+                            if (GUILayout.Button(new GUIContent("Load"), EditorStyles.toolbarButton))
+                            {
+                                UnityDebugViewerEditorUtility.ParseLogFile(this.logFilePath);
+                            }
                             break;
                     }
 
@@ -499,14 +506,14 @@ namespace UnityDebugViewer
                 var log = this.editorManager.activeEditor.selectedLog;
                 if (log != null && this.logFilter.ShouldDisplay(log))
                 {
-                    textAreaStyle.normal.background = bgTextArea;
-                    string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
-                    GUILayout.TextArea(textStr, textAreaStyle, GUILayout.ExpandWidth(true));
-
-                    GUILayout.Box("", GUILayout.Height(splitHeight), GUILayout.ExpandWidth(true));
-
                     lowerPanelScroll = GUILayout.BeginScrollView(lowerPanelScroll);
                     {
+                        textAreaStyle.normal.background = bgTextArea;
+                        string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
+                        GUILayout.TextArea(textStr, textAreaStyle, GUILayout.ExpandWidth(true));
+
+                        GUILayout.Box("", GUILayout.Height(splitHeight), GUILayout.ExpandWidth(true));
+
                         for (int i = 0; i < log.stackList.Count; i++)
                         {
                             var stack = log.stackList[i];
@@ -562,7 +569,7 @@ namespace UnityDebugViewer
 
         private bool DrawLogBox(LogData log, bool isOdd, int num, bool isCollapsed = false)
         {
-            string content = log.info;
+            
             LogType boxType = log.type;
             bool isSelected = log.isSelected;
 
@@ -587,6 +594,13 @@ namespace UnityDebugViewer
             bool click;
             GUILayout.BeginHorizontal(logBoxStyle);
             {
+                string content = log.info.Trim();
+                int cutIndex = content.IndexOf("\n");
+                if(cutIndex != -1)
+                {
+                    content = content.Substring(0, cutIndex + 1) + ".........";
+                }
+
                 click = GUILayout.Button(new GUIContent(content, icon), logBoxStyle, GUILayout.ExpandWidth(true), GUILayout.Height(30));
                 Rect buttonRect = GUILayoutUtility.GetLastRect();
 
@@ -596,7 +610,9 @@ namespace UnityDebugViewer
                     GUIStyle numStyle = GUI.skin.GetStyle("CN CountBadge");
 
                     Vector2 size = numStyle.CalcSize(numContent);
-                    Rect labelRect = new Rect(buttonRect.width - size.x - 20, buttonRect.y + buttonRect.height / 2 - size.y / 2, size.x, size.y);
+
+                    /// make sure the number label display in a fixed relative position of the window
+                    Rect labelRect = new Rect(position.width - size.x - 20, buttonRect.y + buttonRect.height / 2 - size.y / 2, size.x, size.y);
 
                     GUI.Label(labelRect, numContent, numStyle);
                 }
