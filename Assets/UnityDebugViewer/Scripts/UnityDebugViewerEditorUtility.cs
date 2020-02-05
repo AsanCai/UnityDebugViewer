@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace UnityDebugViewer
@@ -9,6 +10,21 @@ namespace UnityDebugViewer
         public const char UnityInternalDirectorySeparator = '/';
         public const string EllipsisStr = "........";
         public const int DisplayLineNumber = 8;
+
+        public static int GetIndexOfTargetString(string inputStr, string targetStr, int appearTimes = 1)
+        {
+            string regex = "((" + Regex.Escape(targetStr) + ").*?){" + appearTimes + "}";
+            Match m = Regex.Match(inputStr, regex);
+
+            if (m.Success)
+            {
+                return m.Groups[2].Captures[appearTimes - 1].Index;
+            }
+            else
+            {
+                return -1;
+            }
+        }
 
         public static string GetSourceContent(string filePath, int lineNumber)
         {

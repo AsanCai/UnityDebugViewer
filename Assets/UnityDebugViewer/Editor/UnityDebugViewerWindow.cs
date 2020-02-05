@@ -9,7 +9,7 @@ namespace UnityDebugViewer
     /// The frontend of UnityDebugViewer
     /// UnityDebugViewerWindow can bind multiple UnityDebugViewerEditor, but only one of them can be actived at a time
     /// </summary>
-    public class UnityDebugViewerWindow : EditorWindow
+    public class UnityDebugViewerWindow : EditorWindow, IHasCustomMenu
     {
         private double lastClickTime = 0;
         private const double DOUBLE_CLICK_INTERVAL = 0.3;
@@ -187,6 +187,9 @@ namespace UnityDebugViewer
             Application.logMessageReceivedThreaded -= LogMessageReceivedHandler;
             Application.logMessageReceivedThreaded += LogMessageReceivedHandler;
         }
+
+        void IHasCustomMenu.AddItemsToMenu(GenericMenu menu)
+            
 
         private void Awake()
         {
@@ -444,8 +447,7 @@ namespace UnityDebugViewer
                                 continue;
                             }
 
-                            int num = this.editorManager.activeEditor.GetLogNum(log);
-                            if (DrawLogBox(log, i % 2 == 0, num, collapse))
+                            if (DrawLogBox(log, i % 2 == 0, i, collapse))
                             {
                                 /// update selected log
                                 if (this.editorManager.activeEditor.selectedLog != null)
@@ -559,9 +561,8 @@ namespace UnityDebugViewer
             EditorGUIUtility.AddCursorRect(resizer, MouseCursor.ResizeVertical);
         }
 
-        private bool DrawLogBox(LogData log, bool isOdd, int num, bool isCollapsed = false)
+        private bool DrawLogBox(LogData log, bool isOdd, int index, bool isCollapsed = false)
         {
-            
             LogType boxType = log.type;
             bool isSelected = log.isSelected;
 
@@ -586,18 +587,18 @@ namespace UnityDebugViewer
             bool click;
             GUILayout.BeginHorizontal(logBoxStyle);
             {
-                string content = log.info.Trim();
-                int cutIndex = content.IndexOf("\n");
-                if(cutIndex != -1)
+                string content = log.info;
+
+                if (cutIndex != -1)
                 {
-                    content = content.Substring(0, cutIndex + 1) + ".........";
                 }
 
-                click = GUILayout.Button(new GUIContent(content, icon), logBoxStyle, GUILayout.ExpandWidth(true), GUILayout.Height(30));
+                click = GUILayout.Button(buttonGuiContent, logBoxStyle, GUILayout.ExpandWidth(true));
                 Rect buttonRect = GUILayoutUtility.GetLastRect();
 
                 if (isCollapsed)
                 {
+                    int num = this.editorManager.activeEditor.GetLogNum(log);
                     GUIContent numContent = new GUIContent(num.ToString());
                     GUIStyle numStyle = GUI.skin.GetStyle("CN CountBadge");
 
