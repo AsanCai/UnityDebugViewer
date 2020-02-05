@@ -449,33 +449,35 @@ namespace UnityDebugViewer
                                 continue;
                             }
 
+                            /// update selected state
                             if (DrawLogBox(log, i % 2 == 0, i, collapse))
                             {
-                                /// update selected log
-                                if (this.editorManager.activeEditor.selectedLog != null)
+                                if(Event.current.button == 0)
                                 {
-                                    this.editorManager.activeEditor.selectedLog.isSelected = false;
-                                }
-                                log.isSelected = true;
-                                this.editorManager.activeEditor.selectedLog = log;
+                                    this.editorManager.activeEditor.selectedLogIndex = i;
 
-                                /// try to open source file of the log
-                                if (this.selectedLogIndex == i)
-                                {
-                                    if (EditorApplication.timeSinceStartup - lastClickTime < DOUBLE_CLICK_INTERVAL)
+                                    /// try to open source file of the log
+                                    if (this.selectedLogIndex == i && Event.current.button == 0)
                                     {
-                                        UnityDebugViewerWindowUtility.JumpToSource(log);
-                                        lastClickTime = 0;
+                                        if (EditorApplication.timeSinceStartup - lastClickTime < DOUBLE_CLICK_INTERVAL)
+                                        {
+                                            UnityDebugViewerWindowUtility.JumpToSource(log);
+                                            lastClickTime = 0;
+                                        }
+                                        else
+                                        {
+                                            lastClickTime = EditorApplication.timeSinceStartup;
+                                        }
                                     }
                                     else
                                     {
+                                        this.selectedLogIndex = i;
                                         lastClickTime = EditorApplication.timeSinceStartup;
                                     }
                                 }
-                                else
+                                else if (Event.current.button == 1)
                                 {
-                                    this.selectedLogIndex = i;
-                                    lastClickTime = EditorApplication.timeSinceStartup;
+                                    ShowCopyMenu(log.info);
                                 }
                             }
                         }
@@ -506,7 +508,7 @@ namespace UnityDebugViewer
                     {
                         textAreaStyle.normal.background = bgTextArea;
                         string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
-                        GUILayout.TextArea(textStr, textAreaStyle, GUILayout.ExpandWidth(true));
+                        EditorGUILayout.SelectableLabel(textStr, textAreaStyle, GUILayout.ExpandWidth(true));
 
                         GUILayout.Box("", GUILayout.Height(splitHeight), GUILayout.ExpandWidth(true));
 
@@ -526,7 +528,7 @@ namespace UnityDebugViewer
                             if (DrawStackBox(stack, i % 2 == 0))
                             {
                                 /// try to open the source file of logStack
-                                if (selectedStackIndex == i)
+                                if (selectedStackIndex == i && Event.current.button == 0)
                                 {
                                     if (EditorApplication.timeSinceStartup - lastClickTime < DOUBLE_CLICK_INTERVAL)
                                     {
@@ -542,6 +544,11 @@ namespace UnityDebugViewer
                                 {
                                     selectedStackIndex = i;
                                     lastClickTime = EditorApplication.timeSinceStartup;
+                                }
+
+                                if (Event.current.button == 1)
+                                {
+                                    ShowCopyMenu(stack.fullStackMessage);
                                 }
                             }
                         }
@@ -566,7 +573,7 @@ namespace UnityDebugViewer
         private bool DrawLogBox(LogData log, bool isOdd, int index, bool isCollapsed = false)
         {
             LogType boxType = log.type;
-            bool isSelected = log.isSelected;
+            bool isSelected = index == this.editorManager.activeEditor.selectedLogIndex;
 
             if (isSelected)
             {
@@ -654,6 +661,33 @@ namespace UnityDebugViewer
                 sizeRatio = e.mousePosition.y / position.height;
                 Repaint();
             }
+        }
+
+        private void ShowCopyMenu(object data)
+        {
+            //if (rect.Contains(Event.current.mousePosition) && Event.current.type == EventType.ContextClick)
+            //if (rect.Contains(Event.current.mousePosition) && Event.current.button == 1)
+            //{
+            //    GenericMenu menu = new GenericMenu();
+            //    menu.AddItem(new GUIContent("Copy"), false, CopyData, data);
+            //    menu.ShowAsContext();
+
+            //    //Event.current.Use();
+            //}
+            GenericMenu menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Copy"), false, CopyData, data);
+            menu.ShowAsContext();
+        }
+
+        private void CopyData(object data)
+        {
+            string str = data as string;
+            if(string.IsNullOrEmpty(str))
+            {
+                return;
+            }
+
+            EditorGUIUtility.systemCopyBuffer = str;
         }
 
         private bool CheckADBStatus(string adbPath)

@@ -190,8 +190,21 @@ namespace UnityDebugViewer
         private LogFilter logFilter;
 
 
-        [SerializeField]
-        public LogData selectedLog = null;
+        //[SerializeField]
+        //public LogData selectedLog = null;
+        public int selectedLogIndex = -1;
+        public LogData selectedLog
+        {
+            get
+            {
+                if(selectedLogIndex < 0 || selectedLogIndex >= filteredLogList.Count)
+                {
+                    return null;
+                }
+
+                return filteredLogList[selectedLogIndex];
+            }
+        }
         #endregion
 
         private UnityDebugViewerEditorType _type = UnityDebugViewerEditorType.Editor;
@@ -234,7 +247,8 @@ namespace UnityDebugViewer
             collapsedLogDic.Clear();
             filteredLogList.Clear();
 
-            selectedLog = null;
+            selectedLogIndex = -1;
+            //selectedLog = null;
             logNum = 0;
             warningNum = 0;
             errorNum = 0;

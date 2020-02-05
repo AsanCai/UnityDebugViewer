@@ -56,11 +56,6 @@ namespace UnityDebugViewer
         
         public const string LOG_FILE_STACK_REGEX = @"(?<className>([\S]+(\.[\S]+)*)):(?<functionName>[\S]+\(.*\))";
 
-        /// <summary>
-        /// Mark whether the log is selected
-        /// </summary>
-        public bool isSelected = false;
-
         public string info { get; private set; }
         public string extraInfo { get; private set; }
         public LogType type { get; private set; }
