@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
+using UnityEngine;
 
 namespace UnityDebugViewer
 {
+    public delegate void DisconnectToServerHandler();
+
     public class UnityDebugViewerTransfer
     {
         private IPAddress ipAddress;
@@ -16,6 +18,8 @@ namespace UnityDebugViewer
         private byte[] receiveBuffer = new byte[2048];
         private int receiveLength;
         private Thread connectThread;
+
+        public event DisconnectToServerHandler disconnectToServerEvent;
 
         public void ConnectToServer(string ip, int port)
         {
@@ -57,7 +61,23 @@ namespace UnityDebugViewer
             }
 
             serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            serverSocket.Connect(ipEndPoint);
+            try
+            {
+                serverSocket.Connect(ipEndPoint);
+            }
+            catch(Exception e)
+            {
+                if (disconnectToServerEvent != null)
+                {
+                    disconnectToServerEvent();
+                }
+                else
+                {
+                    UnityDebugViewerLogger.LogError("disconnectToServerEvent is null", UnityDebugViewerEditorType.ADBForward);
+                }
+
+                UnityDebugViewerLogger.LogError(e.ToString(), UnityDebugViewerEditorType.ADBForward);
+            }
         }
 
 

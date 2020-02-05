@@ -227,6 +227,7 @@ namespace UnityDebugViewer
             logFilter.searchText = searchText;
             shouldUpdateLogFilter = true;
 
+            UnityDebugViewerTransferUtility.disconnectToServerEvent += DisconnectToServerHandler;
 #if UNITY_2017_2_OR_NEWER
             EditorApplication.playModeStateChanged += PlayModeStateChangeHandler;
 #else
@@ -236,6 +237,7 @@ namespace UnityDebugViewer
 
         private void OnDestroy()
         {
+            UnityDebugViewerTransferUtility.disconnectToServerEvent -= DisconnectToServerHandler;
 #if UNITY_2017_2_OR_NEWER
             EditorApplication.playModeStateChanged -= PlayModeStateChangeHandler;
 #else
@@ -726,17 +728,26 @@ namespace UnityDebugViewer
             }
         }
 
+        private void DisconnectToServerHandler()
+        {
+            string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
+            if (UnityDebugViewerADBUtility.CheckDevice(adbPath) == false)
+            {
+                UnityDebugViewerLogger.LogError("No devices connect, adb forward process should be restart!", UnityDebugViewerEditorType.ADBForward);
+
+                StopADBForward();
+            }
+        }
+
         private void StopADBForward()
         {
             string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
-            if (CheckADBStatus(adbPath) == false)
-            {
-                return;
-            }
 
-            UnityDebugViewerTransferUtility.Clear();
             UnityDebugViewerADBUtility.StopForwardProcess(adbPath);
             startForwardProcess = false;
+
+            /// will abort process, should excute at last
+            UnityDebugViewerTransferUtility.Clear();
         }
 
         private void StartADBLogcat()

@@ -90,8 +90,29 @@ namespace UnityDebugViewer
                 ProcessStartInfo forwardInfo = CreateProcessStartInfo(command, adbPath);
                 if(forwardInfo != null)
                 {
-                    Process forwardProcess = Process.Start(forwardInfo);
-                    forwardProcess.WaitForExit();
+                    using (Process forwardProcess = Process.Start(forwardInfo))
+                    {
+                        StreamReader stdOutput = forwardProcess.StandardOutput;
+                        stdOutput.ReadLine();
+                        if (!stdOutput.EndOfStream)
+                        {
+                            string output = stdOutput.ReadLine();
+                            if (!String.IsNullOrEmpty(output))
+                            {
+                                int port = 0;
+                                if (int.TryParse(output, out port))
+                                {
+                                    UnityDebugViewerLogger.AddLog(string.Format("Start adb forward successfully at port: {0}", port), String.Empty, LogType.Log, UnityDebugViewerEditorType.ADBForward);
+                                }
+                                else
+                                {
+                                    UnityDebugViewerLogger.AddLog(output, String.Empty, LogType.Error, UnityDebugViewerEditorType.ADBForward);
+                                }
+                            }
+                        }
+                    }
+                    //forwardProcess.WaitForExit();
+                    
                     return true;
                 }
             }
@@ -108,7 +129,7 @@ namespace UnityDebugViewer
             }
 
             Process stopForwardProcess = Process.Start(stopForwardInfo);
-            stopForwardProcess.WaitForExit();
+            stopForwardProcess.Dispose();
         }
 
         public bool CheckDevice(string adbPath)
@@ -119,27 +140,27 @@ namespace UnityDebugViewer
                 return false;
             }
 
-            Process checkProcess = Process.Start(checkInfo);
-            checkProcess.WaitForExit();
-
-            StreamReader stdOutput = checkProcess.StandardOutput;
-            stdOutput.ReadLine();
-            if (!stdOutput.EndOfStream)
+            using (Process checkProcess = Process.Start(checkInfo))
             {
-                string deviceChecked = stdOutput.ReadLine();
-                if (String.IsNullOrEmpty(deviceChecked))
+                StreamReader stdOutput = checkProcess.StandardOutput;
+                stdOutput.ReadLine();
+                if (!stdOutput.EndOfStream)
                 {
-                    return false;
+                    string deviceChecked = stdOutput.ReadLine();
+                    if (String.IsNullOrEmpty(deviceChecked))
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        deviceID = deviceChecked.Split('\t')[0];
+                        return true;
+                    }
                 }
                 else
                 {
-                    deviceID = deviceChecked.Split('\t')[0];
-                    return true;
+                    return false;
                 }
-            }
-            else
-            {
-                return false;
             }
         }
 

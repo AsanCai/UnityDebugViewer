@@ -6,40 +6,45 @@ namespace UnityDebugViewer
 {
     public static class UnityDebugViewerTransferUtility
     {
-        private static UnityDebugViewerTransfer transfer = null;
+        public static event DisconnectToServerHandler disconnectToServerEvent;
+
+        private static UnityDebugViewerTransfer transferInstance = null;
+
         public static void ConnectToServer(string ip, int port)
         {
-            if(transfer == null)
+            if(transferInstance == null)
             {
-                transfer = new UnityDebugViewerTransfer();
+                transferInstance = new UnityDebugViewerTransfer();
+                transferInstance.disconnectToServerEvent += disconnectToServerEvent;
             }
 
-            transfer.ConnectToServer(ip, port);
+            transferInstance.ConnectToServer(ip, port);
         }
 
         public static void CreateServerSocket(int port)
         {
-            if (transfer == null)
+            if (transferInstance == null)
             {
-                transfer = new UnityDebugViewerTransfer();
+                transferInstance = new UnityDebugViewerTransfer();
+                transferInstance.disconnectToServerEvent += disconnectToServerEvent;
             }
 
-            transfer.CreateServerSocket(port);
+            transferInstance.CreateServerSocket(port);
         }
 
         public static void SendData(byte[] data)
         {
-            if(transfer != null)
+            if(transferInstance != null)
             {
-                transfer.SendData(data);
+                transferInstance.SendData(data);
             }
         }
 
         public static void Clear()
         {
-            if(transfer != null)
+            if(transferInstance != null)
             {
-                transfer.Clear();
+                transferInstance.Clear();
             }
         }
 

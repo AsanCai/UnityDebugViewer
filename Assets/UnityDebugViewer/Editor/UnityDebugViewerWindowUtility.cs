@@ -9,6 +9,8 @@ namespace UnityDebugViewer
 {
     public static class UnityDebugViewerWindowUtility 
     {
+        private static string adbPath = string.Empty;
+
         public static bool JumpToSource(LogData log)
         {
             if (log != null)
@@ -134,7 +136,11 @@ namespace UnityDebugViewer
 
         public static string GetAdbPath()
         {
-            string adbPath = string.Empty;
+            if (!String.IsNullOrEmpty(adbPath))
+            {
+                return adbPath;
+            }
+
 #if UNITY_2019_1_OR_NEWER
             ADB adb = ADB.GetInstance();
             if(abd != null)
