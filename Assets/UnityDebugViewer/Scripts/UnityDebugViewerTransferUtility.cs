@@ -6,6 +6,43 @@ namespace UnityDebugViewer
 {
     public static class UnityDebugViewerTransferUtility
     {
+        private static UnityDebugViewerTransfer transfer = null;
+        public static void ConnectToServer(string ip, int port)
+        {
+            if(transfer == null)
+            {
+                transfer = new UnityDebugViewerTransfer();
+            }
+
+            transfer.ConnectToServer(ip, port);
+        }
+
+        public static void CreateServerSocket(int port)
+        {
+            if (transfer == null)
+            {
+                transfer = new UnityDebugViewerTransfer();
+            }
+
+            transfer.CreateServerSocket(port);
+        }
+
+        public static void SendData(byte[] data)
+        {
+            if(transfer != null)
+            {
+                transfer.SendData(data);
+            }
+        }
+
+        public static void Clear()
+        {
+            if(transfer != null)
+            {
+                transfer.Clear();
+            }
+        }
+
         public static byte[] StructToBytes(object data)
         {
             /// 得到结构体的大小

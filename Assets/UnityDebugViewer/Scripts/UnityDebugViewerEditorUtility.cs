@@ -1,7 +1,6 @@
 ﻿using System.IO;
 using System.Linq;
 using UnityEngine;
-using UnityEditorInternal;
 
 namespace UnityDebugViewer
 {
@@ -10,54 +9,6 @@ namespace UnityDebugViewer
         public const char UnityInternalDirectorySeparator = '/';
         public const string EllipsisStr = "........";
         public const int DisplayLineNumber = 8;
-
-        public static bool JumpToSource(LogData log)
-        {
-            if(log != null)
-            {
-                for (int i = 0; i < log.stackList.Count; i++)
-                {
-                    var stack = log.stackList[i];
-                    if (stack == null)
-                    {
-                        continue;
-                    }
-
-                    if (JumpToSource(stack))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        public static bool JumpToSource(LogStackData stack)
-        {
-            if(stack == null)
-            {
-                return false;
-            }
-            else
-            {
-                return JumpToSource(stack.filePath, stack.lineNumber);
-            }
-        }
-
-        public static bool JumpToSource(string filePath, int lineNumber)
-        {
-            var validFilePath = ConvertToSystemFilePath(filePath);
-            if (File.Exists(validFilePath))
-            {
-                if(InternalEditorUtility.OpenFileAtLineExternal(validFilePath, lineNumber))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
 
         public static string GetSourceContent(string filePath, int lineNumber)
         {

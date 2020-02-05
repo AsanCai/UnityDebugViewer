@@ -2,42 +2,19 @@
 using System.IO;
 using System.Diagnostics;
 using System.Text;
-using UnityEditor;
 using UnityEngine;
 
 namespace UnityDebugViewer
 {
     public class UnityDebugViewerADB : ScriptableObject
     {
-        private static Process logCatProcess;
-        private static string deviceID;
-        public const string DEFAULT_PC_PORT = "50000";
-        public const string DEFAULT_PHONE_PORT = "50000";
+        public string deviceID { get; private set; }
+        private Process logCatProcess;
 
-
-        private const string DEFAULT_ADB_PATH = "ADB";
-        private const string LOGCAT_CLEAR = "logcat -c";
-        private const string LOGCAT_ARGUMENTS = "logcat -v time";
-        private const string LOGCAT_ARGUMENTS_WITH_FILTER = "logcat -v time -s {0}";
-        private const string ADB_DEVICE_CHECK = "devices";
-        private const string START_ADB_FORWARD = "forward tcp:{0} tcp:{1}";
-        private const string STOP_ADB_FORWARD = "forward --remove-all";
-
-        private static UnityDebugViewerADB instance;
-        public static UnityDebugViewerADB GetInstance()
-        {
-            if(instance == null)
-            {
-                instance = ScriptableObject.CreateInstance<UnityDebugViewerADB>();
-            }
-
-            return instance;
-        }
-
-        public static void RunClearCommand()
+        public void RunClearCommand(string adbPath)
         {
             // 使用`adb logcat -c`清理log buffer
-            ProcessStartInfo clearProcessInfo = CreateProcessStartInfo(LOGCAT_CLEAR);
+            ProcessStartInfo clearProcessInfo = CreateProcessStartInfo(UnityDebugViewerADBUtility.LOGCAT_CLEAR, adbPath);
             if(clearProcessInfo == null)
             {
                 return;
@@ -47,32 +24,16 @@ namespace UnityDebugViewer
             clearProcess.WaitForExit();
         }
 
-        public static bool StartLogCatProcess(string commands, DataReceivedEventHandler processDataHandler)
+        public bool StartLogcatProcess(DataReceivedEventHandler processDataHandler, string filter, string adbPath)
         {
-            // 创建`adb logcat`进程
-            ProcessStartInfo logProcessInfo = CreateProcessStartInfo(commands);
-            if(logProcessInfo == null)
+            /// stop first
+            StopLogcatProcess();
+
+            if (CheckDevice(adbPath))
             {
-                return false;
-            }
+                string commands = string.IsNullOrEmpty(filter) ? UnityDebugViewerADBUtility.LOGCAT_ARGUMENTS : string.Format(UnityDebugViewerADBUtility.LOGCAT_ARGUMENTS_WITH_FILTER, filter);
 
-            /// 执行adb进程
-            StopLogCatProcess();
-            logCatProcess = Process.Start(logProcessInfo);
-            logCatProcess.ErrorDataReceived += processDataHandler;
-            logCatProcess.OutputDataReceived += processDataHandler;
-            logCatProcess.BeginErrorReadLine();
-            logCatProcess.BeginOutputReadLine();
-
-            return true;
-        }
-
-        public static bool StartLogCatProcess(DataReceivedEventHandler processDataHandler, string filter = null)
-        {
-            if (CheckDevice())
-            {
-                string commands = string.IsNullOrEmpty(filter) ? LOGCAT_ARGUMENTS : string.Format(LOGCAT_ARGUMENTS_WITH_FILTER, filter);
-                ProcessStartInfo logProcessInfo = CreateProcessStartInfo(commands);
+                ProcessStartInfo logProcessInfo = CreateProcessStartInfo(commands, adbPath);
                 if (logProcessInfo != null)
                 {
                     /// 执行adb进程
@@ -84,16 +45,12 @@ namespace UnityDebugViewer
                     return true;
                 }
             }
-            else
-            {
-                EditorUtility.DisplayDialog("Unity Debug Viewer", "Cannot detect any android device", "ok");
-            }
 
             return false;
         }
 
 
-        public static void StopLogCatProcess()
+        public void StopLogcatProcess()
         {
             if (logCatProcess != null)
             {
@@ -112,22 +69,25 @@ namespace UnityDebugViewer
             }
         }
 
-        public static bool StartForwardProcess(string pcPort, string phonePort)
+        public bool StartForwardProcess(string pcPort, string phonePort, string adbPath)
         {
-            if (CheckDevice())
+            /// stop first
+            StopForwardProcess(adbPath);
+
+            if (CheckDevice(adbPath))
             {
                 if (String.IsNullOrEmpty(pcPort))
                 {
-                    pcPort = DEFAULT_PC_PORT;
+                    pcPort = UnityDebugViewerADBUtility.DEFAULT_FORWARD_PC_PORT;
                 }
 
                 if (String.IsNullOrEmpty(phonePort))
                 {
-                    phonePort = DEFAULT_PHONE_PORT;
+                    phonePort = UnityDebugViewerADBUtility.DEFAULT_FORWARD_PHONE_PORT;
                 }
 
-                string command = String.Format(START_ADB_FORWARD, pcPort, phonePort);
-                ProcessStartInfo forwardInfo = CreateProcessStartInfo(command);
+                string command = String.Format(UnityDebugViewerADBUtility.START_ADB_FORWARD, pcPort, phonePort);
+                ProcessStartInfo forwardInfo = CreateProcessStartInfo(command, adbPath);
                 if(forwardInfo != null)
                 {
                     Process forwardProcess = Process.Start(forwardInfo);
@@ -135,17 +95,13 @@ namespace UnityDebugViewer
                     return true;
                 }
             }
-            else
-            {
-                EditorUtility.DisplayDialog("Unity Debug Viewer", "Cannot detect any android device", "ok");
-            }
 
             return false;
         }
 
-        public static void StopForwardProcess()
+        public void StopForwardProcess(string adbPath)
         {
-            ProcessStartInfo stopForwardInfo = CreateProcessStartInfo(STOP_ADB_FORWARD);
+            ProcessStartInfo stopForwardInfo = CreateProcessStartInfo(UnityDebugViewerADBUtility.STOP_ADB_FORWARD, adbPath);
             if (stopForwardInfo == null)
             {
                 return;
@@ -155,9 +111,9 @@ namespace UnityDebugViewer
             stopForwardProcess.WaitForExit();
         }
 
-        public static bool CheckDevice()
+        public bool CheckDevice(string adbPath)
         {
-            ProcessStartInfo checkInfo = CreateProcessStartInfo(ADB_DEVICE_CHECK);
+            ProcessStartInfo checkInfo = CreateProcessStartInfo(UnityDebugViewerADBUtility.ADB_DEVICE_CHECK, adbPath);
             if(checkInfo == null)
             {
                 return false;
@@ -187,12 +143,11 @@ namespace UnityDebugViewer
             }
         }
 
-        private static ProcessStartInfo CreateProcessStartInfo(string command)
+
+        private ProcessStartInfo CreateProcessStartInfo(string command, string adbPath)
         {
-            var adbPath = GetAdbPath();
             if (String.IsNullOrEmpty(adbPath))
             {
-                EditorUtility.DisplayDialog("Unity Debug Viewer", "Cannot find adb", "ok");
                 return null;
             }
 
@@ -209,39 +164,6 @@ namespace UnityDebugViewer
             };
 
             return processStartInfo;
-        }
-
-        private static string GetAdbPath()
-        {
-            string adbPath = string.Empty;
-#if UNITY_2019_1_OR_NEWER
-            ADB adb = ADB.GetInstance();
-            if(abd != null)
-            {
-                adbPath = adb.GetADBPath();
-            }
-#else
-            string androidSdkRoot = EditorPrefs.GetString("AndroidSdkRoot");
-            if (!string.IsNullOrEmpty(androidSdkRoot))
-            {
-                adbPath = Path.Combine(androidSdkRoot, Path.Combine("platform-tools", "adb"));
-            }
-#endif
-
-            if (string.IsNullOrEmpty(adbPath))
-            {
-                MonoScript ms = MonoScript.FromScriptableObject(UnityDebugViewerADB.GetInstance());
-                string filePath = AssetDatabase.GetAssetPath(ms);
-                filePath = UnityDebugViewerEditorUtility.ConvertToSystemFilePath(filePath);
-
-                string currentScriptDirectory = Path.GetDirectoryName(filePath);
-                string parentDirectory = Directory.GetParent(currentScriptDirectory).FullName;
-
-                string defaultAdbPath = UnityDebugViewerEditorUtility.ConvertToSystemFilePath(DEFAULT_ADB_PATH);
-                adbPath = Path.Combine(Path.Combine(parentDirectory, defaultAdbPath), "adb");
-            }
-
-            return adbPath;
         }
     }
 }

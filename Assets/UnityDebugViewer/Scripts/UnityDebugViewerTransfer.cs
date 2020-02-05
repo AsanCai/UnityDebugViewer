@@ -6,34 +6,37 @@ using System.Threading;
 
 namespace UnityDebugViewer
 {
-    public static class UnityDebugViewerTransfer
+    public class UnityDebugViewerTransfer
     {
-        private static IPAddress ipAddress;
-        private static IPEndPoint ipEndPoint;
-        private static Socket serverSocket;
+        private IPAddress ipAddress;
+        private IPEndPoint ipEndPoint;
+        private Socket serverSocket;
+        private Socket clientSocket;
 
-        private static byte[] receiveBuffer = new byte[2048];
-        private static int receiveLength;
-        private static Thread connectThread;
+        private byte[] receiveBuffer = new byte[2048];
+        private int receiveLength;
+        private Thread connectThread;
 
-        public static void ConnectToServer(string ip, int port)
+        public void ConnectToServer(string ip, int port)
         {
+            Clear();
+
             ipAddress = IPAddress.Parse(ip);
             ipEndPoint = new IPEndPoint(ipAddress, port);
 
-            connectThread = new Thread(new ThreadStart(SocketReceive));
+            connectThread = new Thread(new ThreadStart(ReceiveFromServerSocket));
             connectThread.Start();
         }
 
-        private static void SocketReceive()
+        private void ReceiveFromServerSocket()
         {
-            SocketConnect();
+            ConnectToServerSocket();
             while (true)
             {
                 receiveLength = serverSocket.Receive(receiveBuffer);
                 if (receiveLength == 0)
                 {
-                    SocketConnect();
+                    ConnectToServerSocket();
                     continue;
                 }
 
@@ -45,7 +48,7 @@ namespace UnityDebugViewer
             }
         }
 
-        private static void SocketConnect()
+        private void ConnectToServerSocket()
         {
             if (serverSocket != null)
             {
@@ -57,9 +60,68 @@ namespace UnityDebugViewer
             serverSocket.Connect(ipEndPoint);
         }
 
-        public static void Disconnect()
+
+        public void CreateServerSocket(int port)
         {
-            //先关闭线程
+            Clear();
+
+            ipAddress = IPAddress.Any;
+            ipEndPoint = new IPEndPoint(IPAddress.Any, port);
+
+            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            serverSocket.Bind(ipEndPoint);
+            serverSocket.Listen(10);
+
+            connectThread = new Thread(new ThreadStart(ReceiveFromClientSocket));
+            connectThread.Start();
+        }
+
+        private void ReceiveFromClientSocket()
+        {
+            /// 连接
+            ConnectToClientSocket();
+            while (true)
+            {
+                receiveLength = clientSocket.Receive(receiveBuffer);
+                if (receiveLength == 0)
+                {
+                    ConnectToClientSocket();
+                    continue;
+                }
+            }
+        }
+
+        private void ConnectToClientSocket()
+        {
+            if (clientSocket != null)
+            {
+                clientSocket.Close();
+            }
+            
+            //一旦接受连接，创建一个客户端
+            clientSocket = serverSocket.Accept();
+        }
+
+        public void SendData(byte[] data)
+        {
+            if (clientSocket == null)
+            {
+                return;
+            }
+
+            clientSocket.Send(data);
+        }
+
+
+        public void Clear()
+        {
+            /// close in order
+            if (clientSocket != null)
+            {
+                clientSocket.Close();
+                clientSocket = null;
+            }
+
             if (connectThread != null)
             {
                 connectThread.Interrupt();
@@ -67,7 +129,6 @@ namespace UnityDebugViewer
                 connectThread = null;
             }
 
-            //最后关闭服务器
             if (serverSocket != null)
             {
                 serverSocket.Close();
