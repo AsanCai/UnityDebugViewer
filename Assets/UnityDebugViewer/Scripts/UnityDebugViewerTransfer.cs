@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace UnityDebugViewer
 {
-    public delegate void DisconnectToServerHandler();
+    public delegate void DisconnectHandler();
 
     public class UnityDebugViewerTransfer
     {
@@ -19,7 +19,8 @@ namespace UnityDebugViewer
         private int receiveLength;
         private Thread connectThread;
 
-        public event DisconnectToServerHandler disconnectToServerEvent;
+        public event DisconnectHandler disconnectToServerEvent;
+        public event DisconnectHandler disconnectToClientrEvent;
 
         public void ConnectToServer(string ip, int port)
         {
@@ -37,7 +38,17 @@ namespace UnityDebugViewer
             ConnectToServerSocket();
             while (true)
             {
-                receiveLength = serverSocket.Receive(receiveBuffer);
+                try
+                {
+                    receiveLength = serverSocket.Receive(receiveBuffer);
+                }
+                catch(Exception e)
+                {
+                    if(disconnectToServerEvent != null)
+                    {
+                        disconnectToServerEvent();
+                    }
+                }
                 if (receiveLength == 0)
                 {
                     ConnectToServerSocket();
@@ -71,10 +82,6 @@ namespace UnityDebugViewer
                 {
                     disconnectToServerEvent();
                 }
-                else
-                {
-                    UnityDebugViewerLogger.LogError("disconnectToServerEvent is null", UnityDebugViewerEditorType.ADBForward);
-                }
 
                 UnityDebugViewerLogger.LogError(e.ToString(), UnityDebugViewerEditorType.ADBForward);
             }
@@ -102,7 +109,17 @@ namespace UnityDebugViewer
             ConnectToClientSocket();
             while (true)
             {
-                receiveLength = clientSocket.Receive(receiveBuffer);
+                try
+                {
+                    receiveLength = clientSocket.Receive(receiveBuffer);
+                }
+                catch(Exception e)
+                {
+                    if(disconnectToClientrEvent != null)
+                    {
+                        disconnectToClientrEvent();
+                    }
+                }
                 if (receiveLength == 0)
                 {
                     ConnectToClientSocket();
@@ -117,9 +134,15 @@ namespace UnityDebugViewer
             {
                 clientSocket.Close();
             }
-            
-            //一旦接受连接，创建一个客户端
-            clientSocket = serverSocket.Accept();
+
+            try
+            {
+                clientSocket = serverSocket.Accept();
+            }
+            catch(Exception e)
+            {
+                UnityDebugViewerLogger.LogError(e.ToString(), UnityDebugViewerEditorType.ADBForward);
+            }
         }
 
         public void SendData(byte[] data)

@@ -92,26 +92,41 @@ namespace UnityDebugViewer
                 {
                     using (Process forwardProcess = Process.Start(forwardInfo))
                     {
-                        StreamReader stdOutput = forwardProcess.StandardOutput;
-                        stdOutput.ReadLine();
-                        if (!stdOutput.EndOfStream)
+                        using (StreamReader stdOutput = forwardProcess.StandardOutput)
                         {
-                            string output = stdOutput.ReadLine();
-                            if (!String.IsNullOrEmpty(output))
+                            if (!stdOutput.EndOfStream)
                             {
-                                int port = 0;
-                                if (int.TryParse(output, out port))
+                                string output = stdOutput.ReadLine();
+                                if (!String.IsNullOrEmpty(output))
                                 {
-                                    UnityDebugViewerLogger.AddLog(string.Format("Start adb forward successfully at port: {0}", port), String.Empty, LogType.Log, UnityDebugViewerEditorType.ADBForward);
-                                }
-                                else
-                                {
-                                    UnityDebugViewerLogger.AddLog(output, String.Empty, LogType.Error, UnityDebugViewerEditorType.ADBForward);
+                                    int port = 0;
+                                    if (int.TryParse(output, out port))
+                                    {
+                                        UnityDebugViewerLogger.AddLog(string.Format("Start adb forward successfully at port: {0}", port), String.Empty, LogType.Log, UnityDebugViewerEditorType.ADBForward);
+                                    }
+                                    else
+                                    {
+                                        UnityDebugViewerLogger.AddLog(String.Format("[{0}] {1}", "Start adb forward process faild", output), String.Empty, LogType.Error, UnityDebugViewerEditorType.ADBForward);
+                                        return false;
+                                    }
                                 }
                             }
                         }
+
+                        using (StreamReader errorOutPut = forwardProcess.StandardError)
+                        {
+                            if (!errorOutPut.EndOfStream)
+                            {
+                                string output = errorOutPut.ReadLine();
+                                if (!string.IsNullOrEmpty(output))
+                                {
+                                    UnityDebugViewerLogger.AddLog(String.Format("[{0}] {1}", "Start adb forward process faild", output), String.Empty, LogType.Error, UnityDebugViewerEditorType.ADBForward);
+                                }
+
+                                return false;
+                            }
+                        }
                     }
-                    //forwardProcess.WaitForExit();
                     
                     return true;
                 }

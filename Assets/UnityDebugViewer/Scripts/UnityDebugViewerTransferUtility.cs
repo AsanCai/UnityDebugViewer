@@ -6,7 +6,7 @@ namespace UnityDebugViewer
 {
     public static class UnityDebugViewerTransferUtility
     {
-        public static event DisconnectToServerHandler disconnectToServerEvent;
+        public static event DisconnectHandler disconnectToServerEvent;
 
         private static UnityDebugViewerTransfer transferInstance = null;
 

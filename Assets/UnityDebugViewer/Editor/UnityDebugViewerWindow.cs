@@ -510,7 +510,10 @@ namespace UnityDebugViewer
                     {
                         textAreaStyle.normal.background = bgTextArea;
                         string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
-                        EditorGUILayout.SelectableLabel(textStr, textAreaStyle, GUILayout.ExpandWidth(true));
+                        var textAreaGUIContent = new GUIContent(textStr);
+                        var textAreaSize = textAreaStyle.CalcSize(textAreaGUIContent);
+
+                        EditorGUILayout.SelectableLabel(textStr, textAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(textAreaSize.y));
 
                         GUILayout.Box("", GUILayout.Height(splitHeight), GUILayout.ExpandWidth(true));
 
@@ -667,15 +670,6 @@ namespace UnityDebugViewer
 
         private void ShowCopyMenu(object data)
         {
-            //if (rect.Contains(Event.current.mousePosition) && Event.current.type == EventType.ContextClick)
-            //if (rect.Contains(Event.current.mousePosition) && Event.current.button == 1)
-            //{
-            //    GenericMenu menu = new GenericMenu();
-            //    menu.AddItem(new GUIContent("Copy"), false, CopyData, data);
-            //    menu.ShowAsContext();
-
-            //    //Event.current.Use();
-            //}
             GenericMenu menu = new GenericMenu();
             menu.AddItem(new GUIContent("Copy"), false, CopyData, data);
             menu.ShowAsContext();
