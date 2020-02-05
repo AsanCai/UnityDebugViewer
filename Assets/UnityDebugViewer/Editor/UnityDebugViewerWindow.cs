@@ -189,7 +189,9 @@ namespace UnityDebugViewer
         }
 
         void IHasCustomMenu.AddItemsToMenu(GenericMenu menu)
+        {
             
+        }
 
         private void Awake()
         {
@@ -589,10 +591,14 @@ namespace UnityDebugViewer
             {
                 string content = log.info;
 
+                int cutIndex = UnityDebugViewerEditorUtility.GetIndexOfTargetString(content, "\n", 1);
                 if (cutIndex != -1)
                 {
+                    content = content.Substring(0, cutIndex + 1) + "..........";
                 }
 
+                content = string.Format("\n{0}\n", content);
+                var buttonGuiContent = new GUIContent(content, icon);
                 click = GUILayout.Button(buttonGuiContent, logBoxStyle, GUILayout.ExpandWidth(true));
                 Rect buttonRect = GUILayoutUtility.GetLastRect();
 
