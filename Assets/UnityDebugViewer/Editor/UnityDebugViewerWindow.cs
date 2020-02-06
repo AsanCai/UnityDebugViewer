@@ -31,14 +31,16 @@ namespace UnityDebugViewer
         private float splitHeight = 2f;
         private float menuBarHeight = 20f;
 
-        private const string CollapsePref = "LOGGER_EDITOR_COLLAPSE";
-        private const string ClearOnPlayPref = "LOGGER_EDITOR_CLEAR_ON_PLAY";
-        private const string ErrorPausePref = "LOGGER_EDITOR_ERROR_PAUSE";
-        private const string AutoScrollPref = "LOGGER_EDITOR_AUTO_SCROLL";
-        private const string ShowLogPref = "LOGGER_EDITOR_SHOW_LOG";
-        private const string ShowWarningPref = "LOGGER_EDITOR_SHOW_WARNING";
-        private const string ShowErrorPref = "LOGGER_EDITOR_SHOW_ERROR";
+        private const string LogLineCountPref = "UNITY_DEBUG_VIEWER_WINDOW_LOG_LINE_COUNT";
+        private const string CollapsePref = "UNITY_DEBUG_VIEWER_WINDOW_COLLAPSE";
+        private const string ClearOnPlayPref = "UNITY_DEBUG_VIEWER_WINDOW_CLEAR_ON_PLAY";
+        private const string ErrorPausePref = "UNITY_DEBUG_VIEWER_WINDOW_ERROR_PAUSE";
+        private const string AutoScrollPref = "UNITY_DEBUG_VIEWER_WINDOW_AUTO_SCROLL";
+        private const string ShowLogPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_LOG";
+        private const string ShowWarningPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_WARNING";
+        private const string ShowErrorPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_ERROR";
 
+        private static int logLineCount = 1;
         private static bool collapse = false;
         private static bool clearOnPlay = false;
         private static bool errorPause = false;
@@ -70,106 +72,6 @@ namespace UnityDebugViewer
         private GUIStyle stackBoxStyle = new GUIStyle();
         private GUIStyle textAreaStyle = new GUIStyle();
 
-        private Texture2D _bgLogBoxOdd;
-        private Texture2D boxLogBgOdd
-        {
-            get
-            {
-                if(_bgLogBoxOdd == null)
-                {
-                    _bgLogBoxOdd = GUI.skin.GetStyle("OL EntryBackOdd").normal.background;
-                }
-
-                return _bgLogBoxOdd;
-            }
-        }
-        private Texture2D _boxLogBgEven;
-        private Texture2D boxLogBgEven
-        {
-            get
-            {
-                if(_boxLogBgEven == null)
-                {
-                    _boxLogBgEven = GUI.skin.GetStyle("OL EntryBackEven").normal.background;
-                }
-
-                return _boxLogBgEven;
-            }
-        }
-        private Texture2D _boxLogBgSelected;
-        private Texture2D boxLogBgSelected
-        {
-            get
-            {
-                if(_boxLogBgSelected == null)
-                {
-                    _boxLogBgSelected = GUI.skin.GetStyle("OL SelectedRow").normal.background;
-                }
-
-                return _boxLogBgSelected;
-            }
-        }
-        private Texture2D _bgResizer;
-        private Texture2D bgResizer
-        {
-            get
-            {
-                if(_bgResizer == null)
-                {
-                    _bgResizer = EditorGUIUtility.Load("icons/d_AvatarBlendBackground.png") as Texture2D;
-                }
-
-                return _bgResizer;
-            }
-        }
-        private Texture2D _bgTextArea;
-        private Texture2D bgTextArea
-        {
-            get
-            {
-                if(_bgTextArea == null)
-                {
-                    _bgTextArea = GUI.skin.GetStyle("ProjectBrowserIconAreaBg").normal.background;
-                }
-
-                return _bgTextArea;
-            }
-        }
-        private Texture2D _bgStackBoxOdd;
-        private Texture2D boxgStackBgOdd
-        {
-            get
-            {
-                if (_bgStackBoxOdd == null)
-                {
-                    _bgStackBoxOdd = GUI.skin.GetStyle("CN EntryBackOdd").normal.background;
-                }
-
-                return _bgStackBoxOdd;
-            }
-        }
-        private Texture2D _boxStackBgEven;
-        private Texture2D boxStackBgEven
-        {
-            get
-            {
-                if (_boxStackBgEven == null)
-                {
-                    _boxStackBgEven = GUI.skin.GetStyle("CN EntryBackEven").normal.background;
-                }
-
-                return _boxStackBgEven;
-            }
-        }
-
-        private Texture2D icon;
-        private Texture2D errorIcon;
-        private Texture2D errorIconSmall;
-        private Texture2D warningIcon;
-        private Texture2D warningIconSmall;
-        private Texture2D infoIcon;
-        private Texture2D infoIconSmall;
-
         [MenuItem("Window/Debug Viewer")]
         private static void OpenWindow()
         {
@@ -190,19 +92,16 @@ namespace UnityDebugViewer
 
         void IHasCustomMenu.AddItemsToMenu(GenericMenu menu)
         {
-            
+            for (int i = 1; i <= 10; ++i)
+            {
+                var lineString = i == 1 ? "Line" : "Lines";
+                menu.AddItem(new GUIContent(string.Format("Log Entry/{0} {1}", i, lineString)), i == logLineCount, SetLogLineCount, i);
+            }
         }
+
 
         private void Awake()
         {
-            errorIcon = EditorGUIUtility.Load("icons/console.erroricon.png") as Texture2D;
-            warningIcon = EditorGUIUtility.Load("icons/console.warnicon.png") as Texture2D;
-            infoIcon = EditorGUIUtility.Load("icons/console.infoicon.png") as Texture2D;
-
-            errorIconSmall = EditorGUIUtility.Load("icons/console.erroricon.sml.png") as Texture2D;
-            warningIconSmall = EditorGUIUtility.Load("icons/console.warnicon.sml.png") as Texture2D;
-            infoIconSmall = EditorGUIUtility.Load("icons/console.infoicon.sml.png") as Texture2D;
-
             /// 确保只被赋值一次
             editorManager = UnityDebugViewerEditorManager.GetInstance();
         }
@@ -212,6 +111,7 @@ namespace UnityDebugViewer
         /// </summary>
         private void OnEnable()
         {
+            logLineCount = PlayerPrefs.GetInt(LogLineCountPref, 1);
             collapse = PlayerPrefs.GetInt(CollapsePref, 0) == 1;
             clearOnPlay = PlayerPrefs.GetInt(ClearOnPlayPref, 0) == 1;
             errorPause = PlayerPrefs.GetInt(ErrorPausePref, 0) == 1;
@@ -262,8 +162,8 @@ namespace UnityDebugViewer
         {
             DrawMenuBar();
             DrawUpperPanel();
-            DrawLowerPanel();
             DrawResizer();
+            DrawLowerPanel();
 
             ProcessEvents(Event.current);
         }
@@ -410,9 +310,9 @@ namespace UnityDebugViewer
                     string errorNum = this.editorManager.activeEditor.errorNum.ToString();
 
                     EditorGUI.BeginChangeCheck();
-                    showLog = GUILayout.Toggle(showLog, new GUIContent(logNum, infoIconSmall), EditorStyles.toolbarButton);
-                    showWarning = GUILayout.Toggle(showWarning, new GUIContent(warningNum, warningIconSmall), EditorStyles.toolbarButton);
-                    showError = GUILayout.Toggle(showError, new GUIContent(errorNum, errorIconSmall), EditorStyles.toolbarButton);
+                    showLog = GUILayout.Toggle(showLog, new GUIContent(logNum, UnityDebugViewerWindowConstant.infoIconSmallStyle.normal.background), EditorStyles.toolbarButton);
+                    showWarning = GUILayout.Toggle(showWarning, new GUIContent(warningNum, UnityDebugViewerWindowConstant.warningIconSmallStyle.normal.background), EditorStyles.toolbarButton);
+                    showError = GUILayout.Toggle(showError, new GUIContent(errorNum, UnityDebugViewerWindowConstant.errorIconSmallStyle.normal.background), EditorStyles.toolbarButton);
                     if (EditorGUI.EndChangeCheck())
                     {
                         PlayerPrefs.SetInt(ShowLogPref, showLog ? 1 : 0);
@@ -503,72 +403,80 @@ namespace UnityDebugViewer
 
             GUILayout.BeginArea(lowerPanel);
             {
-                var log = this.editorManager.activeEditor.selectedLog;
-                if (log != null && this.logFilter.ShouldDisplay(log))
+                lowerPanelScroll = GUILayout.BeginScrollView(lowerPanelScroll);
                 {
-                    lowerPanelScroll = GUILayout.BeginScrollView(lowerPanelScroll);
-                    {
-                        textAreaStyle.normal.background = bgTextArea;
-                        string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
-                        var textAreaGUIContent = new GUIContent(textStr);
-                        var textAreaSize = textAreaStyle.CalcSize(textAreaGUIContent);
-
-                        EditorGUILayout.SelectableLabel(textStr, textAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(textAreaSize.y));
-
-                        GUILayout.Box("", GUILayout.Height(splitHeight), GUILayout.ExpandWidth(true));
-
-                        for (int i = 0; i < log.stackList.Count; i++)
-                        {
-                            var stack = log.stackList[i];
-                            if (stack == null)
-                            {
-                                continue;
-                            }
-
-                            if (string.IsNullOrEmpty(stack.sourceContent))
-                            {
-                                stack.sourceContent = UnityDebugViewerEditorUtility.GetSourceContent(stack.filePath, stack.lineNumber);
-                            }
-
-                            if (DrawStackBox(stack, i % 2 == 0))
-                            {
-                                /// try to open the source file of logStack
-                                if (selectedStackIndex == i && Event.current.button == 0)
-                                {
-                                    if (EditorApplication.timeSinceStartup - lastClickTime < DOUBLE_CLICK_INTERVAL)
-                                    {
-                                        UnityDebugViewerWindowUtility.JumpToSource(stack.filePath, stack.lineNumber);
-                                        lastClickTime = 0;
-                                    }
-                                    else
-                                    {
-                                        lastClickTime = EditorApplication.timeSinceStartup;
-                                    }
-                                }
-                                else
-                                {
-                                    selectedStackIndex = i;
-                                    lastClickTime = EditorApplication.timeSinceStartup;
-                                }
-
-                                if (Event.current.button == 1)
-                                {
-                                    ShowCopyMenu(stack.fullStackMessage);
-                                }
-                            }
-                        }
-                    }
-                    GUILayout.EndScrollView();
+                    DrawStackMessage();
                 }
+                GUILayout.EndScrollView();
+                
             }
             GUILayout.EndArea();
+        }
+
+        private void DrawStackMessage()
+        {
+            var log = this.editorManager.activeEditor.selectedLog;
+            if (log != null && this.logFilter.ShouldDisplay(log))
+            {
+                textAreaStyle.normal.background = UnityDebugViewerWindowConstant.bgTextArea;
+                textAreaStyle.wordWrap = true;
+
+                string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
+                var textAreaGUIContent = new GUIContent(textStr);
+                var textAreaSize = textAreaStyle.CalcSize(textAreaGUIContent);
+
+                EditorGUILayout.SelectableLabel(textStr, textAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(textAreaSize.y));
+
+                GUILayout.Box("", GUILayout.Height(splitHeight), GUILayout.ExpandWidth(true));
+
+                for (int i = 0; i < log.stackList.Count; i++)
+                {
+                    var stack = log.stackList[i];
+                    if (stack == null)
+                    {
+                        continue;
+                    }
+
+                    if (string.IsNullOrEmpty(stack.sourceContent))
+                    {
+                        stack.sourceContent = UnityDebugViewerEditorUtility.GetSourceContent(stack.filePath, stack.lineNumber);
+                    }
+
+                    if (DrawStackBox(stack, i % 2 == 0))
+                    {
+                        /// try to open the source file of logStack
+                        if (selectedStackIndex == i && Event.current.button == 0)
+                        {
+                            if (EditorApplication.timeSinceStartup - lastClickTime < DOUBLE_CLICK_INTERVAL)
+                            {
+                                UnityDebugViewerWindowUtility.JumpToSource(stack.filePath, stack.lineNumber);
+                                lastClickTime = 0;
+                            }
+                            else
+                            {
+                                lastClickTime = EditorApplication.timeSinceStartup;
+                            }
+                        }
+                        else
+                        {
+                            selectedStackIndex = i;
+                            lastClickTime = EditorApplication.timeSinceStartup;
+                        }
+
+                        if (Event.current.button == 1)
+                        {
+                            ShowCopyMenu(stack.fullStackMessage);
+                        }
+                    }
+                }
+            }
         }
 
         private void DrawResizer()
         {
             resizer = new Rect(0, (position.height * sizeRatio) - resizerHeight, position.width, resizerHeight * 2);
 
-            resizerStyle.normal.background = bgResizer;
+            resizerStyle.normal.background = UnityDebugViewerWindowConstant.bgResizer;
             GUILayout.BeginArea(new Rect(resizer.position + (Vector2.up * resizerHeight), new Vector2(position.width, 2)), resizerStyle);
             GUILayout.EndArea();
 
@@ -578,54 +486,77 @@ namespace UnityDebugViewer
         private bool DrawLogBox(LogData log, bool isOdd, int index, bool isCollapsed = false)
         {
             LogType boxType = log.type;
-            bool isSelected = index == this.editorManager.activeEditor.selectedLogIndex;
 
-            if (isSelected)
+            GUIStyle iconStyle;
+            switch (boxType)
             {
-                logBoxStyle.normal.background = boxLogBgSelected;
+                case LogType.Error:
+                case LogType.Exception: 
+                case LogType.Assert:
+                    iconStyle = UnityDebugViewerWindowConstant.errorIconStyle;
+                    break;
+                case LogType.Warning:
+                    iconStyle = UnityDebugViewerWindowConstant.warningIconStyle;
+                    break;
+                case LogType.Log:
+                    iconStyle = UnityDebugViewerWindowConstant.infoIconStyle;
+                    break;
+                default:
+                    iconStyle = null;
+                    break;
+            }
+            if(iconStyle == null)
+            {
+                return false;
+            }
+
+            logBoxStyle.wordWrap = true;
+            logBoxStyle.clipping = TextClipping.Clip;
+            logBoxStyle.padding = new RectOffset(20, 10, 5, 5);
+            if (index == this.editorManager.activeEditor.selectedLogIndex)
+            {
+                logBoxStyle.normal.background = UnityDebugViewerWindowConstant.boxLogBgSelected;
             }
             else
             {
-                logBoxStyle.normal.background = isOdd ? boxLogBgOdd : boxLogBgEven;
-            }
-
-            switch (boxType)
-            {
-                case LogType.Error: icon = errorIcon; break;
-                case LogType.Exception: icon = errorIcon; break;
-                case LogType.Assert: icon = errorIcon; break;
-                case LogType.Warning: icon = warningIcon; break;
-                case LogType.Log: icon = infoIcon; break;
+                logBoxStyle.normal.background = isOdd ? UnityDebugViewerWindowConstant.boxLogBgOdd : UnityDebugViewerWindowConstant.boxLogBgEven;
             }
 
             bool click;
             GUILayout.BeginHorizontal(logBoxStyle);
             {
+                float logBoxHeight = (logLineCount + 1) * EditorGUIUtility.singleLineHeight;
+
                 string content = log.info;
-
-                int cutIndex = UnityDebugViewerEditorUtility.GetIndexOfTargetString(content, "\n", 1);
-                if (cutIndex != -1)
+                var buttonGuiContent = new GUIContent(content);
+                var buttonSize = logBoxStyle.CalcSize(buttonGuiContent);
+                if(buttonSize.y > logBoxHeight)
                 {
-                    content = content.Substring(0, cutIndex + 1) + "..........";
+                    logBoxStyle.alignment = TextAnchor.UpperLeft;
                 }
-
-                content = string.Format("\n{0}\n", content);
-                var buttonGuiContent = new GUIContent(content, icon);
-                click = GUILayout.Button(buttonGuiContent, logBoxStyle, GUILayout.ExpandWidth(true));
+                else
+                {
+                    logBoxStyle.alignment = TextAnchor.MiddleLeft;
+                }
+                
+                click = GUILayout.Button(buttonGuiContent, logBoxStyle, GUILayout.ExpandWidth(true), GUILayout.Height(logBoxHeight));
                 Rect buttonRect = GUILayoutUtility.GetLastRect();
+                var buttonMidHeight = buttonRect.y + buttonRect.height / 2;
+
+                var iconGUIContent = new GUIContent("");
+                var iconSize = iconStyle.CalcSize(iconGUIContent);
+                var iconRect = new Rect(5, buttonMidHeight - iconSize.y / 2, iconSize.x, iconSize.y);
+                GUI.Button(iconRect, iconGUIContent, iconStyle);
 
                 if (isCollapsed)
                 {
-                    int num = this.editorManager.activeEditor.GetLogNum(log);
-                    GUIContent numContent = new GUIContent(num.ToString());
-                    GUIStyle numStyle = GUI.skin.GetStyle("CN CountBadge");
-
-                    Vector2 size = numStyle.CalcSize(numContent);
-
                     /// make sure the number label display in a fixed relative position of the window
-                    Rect labelRect = new Rect(position.width - size.x - 20, buttonRect.y + buttonRect.height / 2 - size.y / 2, size.x, size.y);
+                    int num = this.editorManager.activeEditor.GetLogNum(log);
+                    GUIContent labelGUIContent = new GUIContent(num.ToString());
+                    var labelSize = UnityDebugViewerWindowConstant.collapsedNumLabelStyle.CalcSize(labelGUIContent);
+                    Rect labelRect = new Rect(position.width - labelSize.x - 20, buttonRect.y + buttonRect.height / 2 - labelSize.y / 2, labelSize.x, labelSize.y);
 
-                    GUI.Label(labelRect, numContent, numStyle);
+                    GUI.Label(labelRect, labelGUIContent, UnityDebugViewerWindowConstant.collapsedNumLabelStyle);
                 }
             }
             GUILayout.EndHorizontal();
@@ -637,7 +568,7 @@ namespace UnityDebugViewer
         private bool DrawStackBox(LogStackData stack, bool isOdd)
         {
             string content = string.Format("\n{0}\n{1}", stack.fullStackMessage, stack.sourceContent);
-            stackBoxStyle.normal.background = isOdd ? boxgStackBgOdd : boxStackBgEven;
+            stackBoxStyle.normal.background = isOdd ? UnityDebugViewerWindowConstant.boxgStackBgOdd : UnityDebugViewerWindowConstant.boxStackBgEven;
             return GUILayout.Button(new GUIContent(content), stackBoxStyle, GUILayout.ExpandWidth(true));
         }
 
@@ -651,20 +582,19 @@ namespace UnityDebugViewer
                         isResizing = true;
                     }
                     break;
+                case EventType.MouseDrag:
+                    if (isResizing)
+                    {
+                        sizeRatio = e.mousePosition.y / position.height;
+                        sizeRatio = Mathf.Clamp(sizeRatio, 0.1f, 0.9f);
+                        Repaint();
+                    }
+                    break;
 
+                case EventType.Ignore:
                 case EventType.MouseUp:
                     isResizing = false;
                     break;
-            }
-
-            Resize(e);
-        }
-        private void Resize(Event e)
-        {
-            if (isResizing)
-            {
-                sizeRatio = e.mousePosition.y / position.height;
-                Repaint();
             }
         }
 
@@ -774,6 +704,7 @@ namespace UnityDebugViewer
             }
         }
 
+
         private static void LogMessageReceivedHandler(string info, string stackTrace, LogType type)
         {
             if (type == LogType.Error || type == LogType.Assert || type == LogType.Exception)
@@ -786,6 +717,13 @@ namespace UnityDebugViewer
             }
 
             UnityDebugViewerLogger.AddEditorLog(info, stackTrace, type);
+        }
+
+        private static void SetLogLineCount(object obj)
+        {
+            int count = (int)obj;
+            logLineCount = count;
+            PlayerPrefs.SetInt(LogLineCountPref, count);
         }
 
         private void PlayModeStateChangeHandler(PlayModeStateChange state)
