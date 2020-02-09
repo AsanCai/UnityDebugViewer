@@ -105,6 +105,34 @@ namespace UnityDebugViewer
             }
         }
 
+        private static GUIStyle _toolbarSearchTextStyle;
+        public static GUIStyle toolbarSearchTextStyle
+        {
+            get
+            {
+                if (_toolbarSearchTextStyle == null)
+                {
+                    _toolbarSearchTextStyle = GUI.skin.GetStyle("ToolbarSeachTextField");
+                }
+
+                return _toolbarSearchTextStyle;
+            }
+        }
+
+        private static GUIStyle _toolbarCancelButtonStyle;
+        public static GUIStyle toolbarCancelButtonStyle
+        {
+            get
+            {
+                if (_toolbarCancelButtonStyle == null)
+                {
+                    _toolbarCancelButtonStyle = GUI.skin.GetStyle("ToolbarSeachCancelButton");
+                }
+
+                return _toolbarCancelButtonStyle;
+            }
+        }
+
         private static Texture2D _bgLogBoxOdd;
         public static Texture2D boxLogBgOdd
         {

@@ -121,7 +121,7 @@ namespace UnityDebugViewer
         }
 
         protected List<LogData> _logList = null;
-        private List<LogData> logList
+        protected List<LogData> logList
         {
             get
             {
@@ -169,7 +169,6 @@ namespace UnityDebugViewer
         [SerializeField]
         private List<CollapsedLogData> serializeValueList = new List<CollapsedLogData>();
 
-
         /// <summary>
         /// the log list used to display by UnityDebugViewerWindow
         /// </summary>
@@ -189,9 +188,6 @@ namespace UnityDebugViewer
         [SerializeField]
         private LogFilter logFilter;
 
-
-        //[SerializeField]
-        //public LogData selectedLog = null;
         public int selectedLogIndex = -1;
         public LogData selectedLog
         {
@@ -216,6 +212,21 @@ namespace UnityDebugViewer
             }
         }
 
+        [SerializeField]
+        private UnityDebugViewerAnalysisDataManager _analysisDataManager = null;
+        public UnityDebugViewerAnalysisDataManager analysisDataManager
+        {
+            get
+            {
+                if(_analysisDataManager == null)
+                {
+                    _analysisDataManager = new UnityDebugViewerAnalysisDataManager();
+                }
+
+                return _analysisDataManager;
+            }
+        }
+
         public static UnityDebugViewerEditor CreateInstance(UnityDebugViewerEditorType editorType)
         {
             var editor = ScriptableObject.CreateInstance<UnityDebugViewerEditor>();
@@ -224,6 +235,7 @@ namespace UnityDebugViewer
             Type type = editor.GetType();
             FieldInfo field = type.GetField("_type", flag);
             field.SetValue(editor, editorType);
+
             return editor;
         }
 
@@ -247,8 +259,9 @@ namespace UnityDebugViewer
             collapsedLogDic.Clear();
             filteredLogList.Clear();
 
+            analysisDataManager.Clear();
+
             selectedLogIndex = -1;
-            //selectedLog = null;
             logNum = 0;
             warningNum = 0;
             errorNum = 0;
@@ -268,7 +281,7 @@ namespace UnityDebugViewer
 
         public List<LogData> GetFilteredLogList(LogFilter filter, bool forceUpdate = false)
         {
-            if (forceUpdate || !this.logFilter.Equals(filter))
+            if (forceUpdate || this.logFilter.Equals(filter) == false)
             {
                 this.filteredLogList.Clear();
 
@@ -293,9 +306,9 @@ namespace UnityDebugViewer
             return filteredLogList;
         }
 
-        public void AddLog(LogData data)
+        public void AddLog(LogData log)
         {
-            switch (data.type)
+            switch (log.type)
             {
                 case LogType.Log:
                     logNum++;
@@ -309,14 +322,16 @@ namespace UnityDebugViewer
                     errorNum++;
                     break;
             }
-            logList.Add(data);
+            logList.Add(log);
+            analysisDataManager.AddAnalysisData(log);
+            analysisDataManager.Sort();
 
             bool addFilterLog = true;
 
             /// add collapsed log data
             CollapsedLogData collapsedLogData;
-            string key = data.GetKey();
-            var cloneLog = data.Clone();
+            string key = log.GetKey();
+            var cloneLog = log.Clone();
             if (collapsedLogDic.ContainsKey(key))
             {
                 collapsedLogData.count = collapsedLogDic[key].count + 1;
@@ -334,9 +349,9 @@ namespace UnityDebugViewer
                 collapsedLogList.Add(cloneLog);
             }
 
-            if (addFilterLog && logFilter.ShouldDisplay(data))
+            if (addFilterLog && logFilter.ShouldDisplay(log))
             {
-                filteredLogList.Add(data);
+                filteredLogList.Add(log);
             }
         }
 

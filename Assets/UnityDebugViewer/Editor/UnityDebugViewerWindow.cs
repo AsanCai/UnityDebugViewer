@@ -19,10 +19,10 @@ namespace UnityDebugViewer
         private bool isPlaying = false;
         private bool isCompiling = false;
 
-        private Rect upperPanel;
-        private Rect lowerPanel;
-        private Rect resizer;
-        private Rect menuBar;
+        private Rect upperPanelRect;
+        private Rect lowerPanelRect;
+        private Rect resizerRecr;
+        private Rect menuBarRect;
 
         private float sizeRatio = 0.5f;
         private bool isResizing;
@@ -36,6 +36,7 @@ namespace UnityDebugViewer
         private const string ClearOnPlayPref = "UNITY_DEBUG_VIEWER_WINDOW_CLEAR_ON_PLAY";
         private const string ErrorPausePref = "UNITY_DEBUG_VIEWER_WINDOW_ERROR_PAUSE";
         private const string AutoScrollPref = "UNITY_DEBUG_VIEWER_WINDOW_AUTO_SCROLL";
+        private const string ShowAnalysisPref = "UNITY_DEBUG_VIEWER_SHOW_LOG_ANALYSIS";
         private const string ShowLogPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_LOG";
         private const string ShowWarningPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_WARNING";
         private const string ShowErrorPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_ERROR";
@@ -45,15 +46,22 @@ namespace UnityDebugViewer
         private static bool clearOnPlay = false;
         private static bool errorPause = false;
         private static bool autoScroll = false;
+        private static bool showlogAnalysis = false;
         private static bool showLog = false;
         private static bool showWarning = false;
         private static bool showError = false;
+
+        [SerializeField]
+        private UnityDebugViewerAnalysisDataTreeView analysisDataTreeView;
 
         [SerializeField]
         private UnityDebugViewerEditorManager editorManager;
         [SerializeField]
         private LogFilter logFilter;
         private bool shouldUpdateLogFilter;
+
+        private AnalysisDataSortType analysisDataSortType = AnalysisDataSortType.TotalCount;
+        private string analysisSearchText = string.Empty;
 
         private string pcPort = string.Empty;
         private string phonePort = string.Empty;
@@ -116,6 +124,7 @@ namespace UnityDebugViewer
             clearOnPlay = PlayerPrefs.GetInt(ClearOnPlayPref, 0) == 1;
             errorPause = PlayerPrefs.GetInt(ErrorPausePref, 0) == 1;
             autoScroll = PlayerPrefs.GetInt(AutoScrollPref, 0) == 1;
+            showlogAnalysis = PlayerPrefs.GetInt(ShowAnalysisPref, 0) == 1;
             showLog = PlayerPrefs.GetInt(ShowLogPref, 0) == 1;
             showWarning = PlayerPrefs.GetInt(ShowWarningPref, 0) == 1;
             showError = PlayerPrefs.GetInt(ShowErrorPref, 0) == 1;
@@ -126,6 +135,8 @@ namespace UnityDebugViewer
             logFilter.collapse = collapse;
             logFilter.searchText = searchText;
             shouldUpdateLogFilter = true;
+
+            analysisDataTreeView = new UnityDebugViewerAnalysisDataTreeView(this.editorManager.activeEditor.analysisDataManager.Root);
 
             UnityDebugViewerTransferUtility.disconnectToServerEvent += DisconnectToServerHandler;
 #if UNITY_2017_2_OR_NEWER
@@ -170,9 +181,9 @@ namespace UnityDebugViewer
 
         private void DrawMenuBar()
         {
-            menuBar = new Rect(0, 0, position.width, menuBarHeight);
+            menuBarRect = new Rect(0, 0, position.width, menuBarHeight);
 
-            GUILayout.BeginArea(menuBar, EditorStyles.toolbar);
+            GUILayout.BeginArea(menuBarRect, EditorStyles.toolbar);
             {
                 GUILayout.BeginHorizontal();
                 {
@@ -200,11 +211,17 @@ namespace UnityDebugViewer
                     clearOnPlay = GUILayout.Toggle(clearOnPlay, new GUIContent("Clear On Play"), EditorStyles.toolbarButton);
                     errorPause = GUILayout.Toggle(errorPause, new GUIContent("Error Pause"), EditorStyles.toolbarButton);
                     autoScroll = GUILayout.Toggle(autoScroll, new GUIContent("Auto Scroll"), EditorStyles.toolbarButton);
+
+                    GUILayout.Space(5);
+
+                    showlogAnalysis = GUILayout.Toggle(showlogAnalysis, new GUIContent("Show Analysis"), EditorStyles.toolbarButton);
+
                     if (EditorGUI.EndChangeCheck())
                     {
                         PlayerPrefs.SetInt(ClearOnPlayPref, clearOnPlay ? 1 : 0);
                         PlayerPrefs.SetInt(ErrorPausePref, errorPause ? 1 : 0);
                         PlayerPrefs.SetInt(AutoScrollPref, autoScroll ? 1 : 0);
+                        PlayerPrefs.SetInt(ShowAnalysisPref, showlogAnalysis ? 1 : 0);
                     }
 
                     GUILayout.Space(5);
@@ -214,6 +231,7 @@ namespace UnityDebugViewer
                     this.editorManager.activeEditorType = (UnityDebugViewerEditorType)EditorGUILayout.EnumPopup(this.editorManager.activeEditorType, EditorStyles.toolbarPopup, GUILayout.Width(size.x));
                     if (EditorGUI.EndChangeCheck())
                     {
+                        this.analysisDataTreeView = new UnityDebugViewerAnalysisDataTreeView(this.editorManager.activeEditor.analysisDataManager.Root);
                         this.shouldUpdateLogFilter = true;
                     }
 
@@ -293,8 +311,8 @@ namespace UnityDebugViewer
                     GUILayout.FlexibleSpace();
 
                     EditorGUI.BeginChangeCheck();
-                    this.searchText = GUILayout.TextField(this.searchText, GUI.skin.GetStyle("ToolbarSeachTextField"), GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
-                    if (GUILayout.Button("", GUI.skin.GetStyle("ToolbarSeachCancelButton")))
+                    this.searchText = GUILayout.TextField(this.searchText, UnityDebugViewerWindowConstant.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
+                    if (GUILayout.Button("", UnityDebugViewerWindowConstant.toolbarCancelButtonStyle))
                     {
                         this.searchText = string.Empty;
                     }
@@ -332,9 +350,9 @@ namespace UnityDebugViewer
 
         private void DrawUpperPanel()
         {
-            upperPanel = new Rect(0, menuBarHeight, position.width, (position.height * sizeRatio) - menuBarHeight);
+            upperPanelRect = new Rect(0, menuBarHeight, position.width, (position.height * sizeRatio) - menuBarHeight);
 
-            GUILayout.BeginArea(upperPanel);
+            GUILayout.BeginArea(upperPanelRect);
             {
                 upperPanelScroll = GUILayout.BeginScrollView(upperPanelScroll);
                 {
@@ -399,88 +417,148 @@ namespace UnityDebugViewer
 
         private void DrawLowerPanel()
         {
-            lowerPanel = new Rect(0, (position.height * sizeRatio) + resizerHeight, position.width, (position.height * (1 - sizeRatio)) - resizerHeight);
+            lowerPanelRect = new Rect(0, (position.height * sizeRatio) + resizerHeight, position.width, (position.height * (1 - sizeRatio)) - resizerHeight);
 
-            GUILayout.BeginArea(lowerPanel);
+            if (showlogAnalysis)
             {
-                lowerPanelScroll = GUILayout.BeginScrollView(lowerPanelScroll);
-                {
-                    DrawStackMessage();
-                }
-                GUILayout.EndScrollView();
-                
+                DrawAnalysisMessage();
             }
-            GUILayout.EndArea();
+            else
+            {
+                DrawStackMessage();
+            }
         }
 
         private void DrawStackMessage()
         {
-            var log = this.editorManager.activeEditor.selectedLog;
-            if (log != null && this.logFilter.ShouldDisplay(log))
+            GUILayout.BeginArea(lowerPanelRect);
             {
-                textAreaStyle.normal.background = UnityDebugViewerWindowConstant.bgTextArea;
-                textAreaStyle.wordWrap = true;
-
-                string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
-                var textAreaGUIContent = new GUIContent(textStr);
-                var textAreaSize = textAreaStyle.CalcSize(textAreaGUIContent);
-
-                EditorGUILayout.SelectableLabel(textStr, textAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(textAreaSize.y));
-
-                GUILayout.Box("", GUILayout.Height(splitHeight), GUILayout.ExpandWidth(true));
-
-                for (int i = 0; i < log.stackList.Count; i++)
+                lowerPanelScroll = GUILayout.BeginScrollView(lowerPanelScroll);
                 {
-                    var stack = log.stackList[i];
-                    if (stack == null)
+                    var log = this.editorManager.activeEditor.selectedLog;
+                    if (log != null && this.logFilter.ShouldDisplay(log))
                     {
-                        continue;
-                    }
+                        textAreaStyle.normal.background = UnityDebugViewerWindowConstant.bgTextArea;
+                        textAreaStyle.wordWrap = true;
 
-                    if (string.IsNullOrEmpty(stack.sourceContent))
-                    {
-                        stack.sourceContent = UnityDebugViewerEditorUtility.GetSourceContent(stack.filePath, stack.lineNumber);
-                    }
+                        string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
+                        var textAreaGUIContent = new GUIContent(textStr);
+                        var textAreaSize = textAreaStyle.CalcSize(textAreaGUIContent);
 
-                    if (DrawStackBox(stack, i % 2 == 0))
-                    {
-                        /// try to open the source file of logStack
-                        if (selectedStackIndex == i && Event.current.button == 0)
+                        EditorGUILayout.SelectableLabel(textStr, textAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(textAreaSize.y));
+
+                        GUILayout.Box("", GUILayout.Height(splitHeight), GUILayout.ExpandWidth(true));
+
+                        for (int i = 0; i < log.stackList.Count; i++)
                         {
-                            if (EditorApplication.timeSinceStartup - lastClickTime < DOUBLE_CLICK_INTERVAL)
+                            var stack = log.stackList[i];
+                            if (stack == null)
                             {
-                                UnityDebugViewerWindowUtility.JumpToSource(stack.filePath, stack.lineNumber);
-                                lastClickTime = 0;
+                                continue;
                             }
-                            else
-                            {
-                                lastClickTime = EditorApplication.timeSinceStartup;
-                            }
-                        }
-                        else
-                        {
-                            selectedStackIndex = i;
-                            lastClickTime = EditorApplication.timeSinceStartup;
-                        }
 
-                        if (Event.current.button == 1)
-                        {
-                            ShowCopyMenu(stack.fullStackMessage);
+                            if (string.IsNullOrEmpty(stack.sourceContent))
+                            {
+                                stack.sourceContent = UnityDebugViewerEditorUtility.GetSourceContent(stack.filePath, stack.lineNumber);
+                            }
+
+                            if (DrawStackBox(stack, i % 2 == 0))
+                            {
+                                /// try to open the source file of logStack
+                                if (selectedStackIndex == i && Event.current.button == 0)
+                                {
+                                    if (EditorApplication.timeSinceStartup - lastClickTime < DOUBLE_CLICK_INTERVAL)
+                                    {
+                                        UnityDebugViewerWindowUtility.JumpToSource(stack.filePath, stack.lineNumber);
+                                        lastClickTime = 0;
+                                    }
+                                    else
+                                    {
+                                        lastClickTime = EditorApplication.timeSinceStartup;
+                                    }
+                                }
+                                else
+                                {
+                                    selectedStackIndex = i;
+                                    lastClickTime = EditorApplication.timeSinceStartup;
+                                }
+
+                                if (Event.current.button == 1)
+                                {
+                                    ShowCopyMenu(stack.fullStackMessage);
+                                }
+                            }
                         }
                     }
                 }
+                GUILayout.EndScrollView();
             }
+            GUILayout.EndArea();
+        }
+
+        private void DrawAnalysisMessage()
+        {
+            if(analysisDataTreeView == null)
+            {
+                return;
+            }
+
+            Rect analysisMenuBarRect = new Rect(lowerPanelRect.x, lowerPanelRect.y, lowerPanelRect.width, menuBarHeight);
+            Rect titleRect = new Rect(lowerPanelRect.x, analysisMenuBarRect.y + analysisMenuBarRect.height, lowerPanelRect.width, 1.5f * EditorGUIUtility.singleLineHeight);
+            Rect analysisRect = new Rect(lowerPanelRect.x, titleRect.y + titleRect.height, lowerPanelRect.width, lowerPanelRect.height - titleRect.height);
+
+            GUILayout.BeginArea(analysisMenuBarRect, EditorStyles.toolbar);
+            {
+                GUILayout.BeginHorizontal();
+                {
+                    EditorGUI.BeginChangeCheck();
+                    GUILayout.Label(new GUIContent("Sort Type: "), EditorStyles.toolbarButton);
+                    analysisDataSortType = (AnalysisDataSortType)EditorGUILayout.EnumPopup(analysisDataSortType, EditorStyles.toolbarPopup);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        this.editorManager.activeEditor.analysisDataManager.Sort(analysisDataSortType);
+                    }
+
+                    GUILayout.FlexibleSpace();
+
+                    EditorGUI.BeginChangeCheck();
+                    this.analysisSearchText = GUILayout.TextField(this.analysisSearchText, UnityDebugViewerWindowConstant.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
+                    if (GUILayout.Button("", UnityDebugViewerWindowConstant.toolbarCancelButtonStyle))
+                    {
+                        this.analysisSearchText = string.Empty;
+                    }
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        this.editorManager.activeEditor.analysisDataManager.Search(this.analysisSearchText);
+                    }
+                }
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.EndArea();
+
+            GUILayout.BeginArea(analysisRect);
+            {
+                lowerPanelScroll = GUILayout.BeginScrollView(lowerPanelScroll);
+                {
+                    analysisDataTreeView.DrawTreeLayout();
+                }
+                GUILayout.EndScrollView();
+            }
+            GUILayout.EndArea();
+
+            /// draw title at last to make sure title is always on the top
+            analysisDataTreeView.DrawColumnTitle(titleRect);
         }
 
         private void DrawResizer()
         {
-            resizer = new Rect(0, (position.height * sizeRatio) - resizerHeight, position.width, resizerHeight * 2);
+            resizerRecr = new Rect(0, (position.height * sizeRatio) - resizerHeight, position.width, resizerHeight * 2);
 
             resizerStyle.normal.background = UnityDebugViewerWindowConstant.bgResizer;
-            GUILayout.BeginArea(new Rect(resizer.position + (Vector2.up * resizerHeight), new Vector2(position.width, 2)), resizerStyle);
+            GUILayout.BeginArea(new Rect(resizerRecr.position + (Vector2.up * resizerHeight), new Vector2(position.width, 2)), resizerStyle);
             GUILayout.EndArea();
 
-            EditorGUIUtility.AddCursorRect(resizer, MouseCursor.ResizeVertical);
+            EditorGUIUtility.AddCursorRect(resizerRecr, MouseCursor.ResizeVertical);
         }
 
         private bool DrawLogBox(LogData log, bool isOdd, int index, bool isCollapsed = false)
@@ -577,7 +655,7 @@ namespace UnityDebugViewer
             switch (e.type)
             {
                 case EventType.MouseDown:
-                    if (e.button == 0 && resizer.Contains(e.mousePosition))
+                    if (e.button == 0 && resizerRecr.Contains(e.mousePosition))
                     {
                         isResizing = true;
                     }
