@@ -50,14 +50,31 @@ namespace UnityDebugViewer
                 }
                 else
                 {
-                    if(Regex.IsMatch(log.info, searchText))
+                    try
                     {
-                        return true;
+                        if (Regex.IsMatch(log.info, searchText))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            string input = log.info.ToLower();
+                            string pattern = searchText.ToLower();
+                            if(Regex.IsMatch(input, pattern))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                return input.Contains(pattern);
+                            }
+                        }
                     }
-                    else
+                    catch
                     {
-                        /// Lowercase and try again
-                        return Regex.IsMatch(log.info.ToLower(), searchText.ToLower());
+                        string input = log.info.ToLower();
+                        string pattern = searchText.ToLower();
+                        input.Contains(pattern);
                     }
                 }
             }

@@ -82,22 +82,31 @@ namespace UnityDebugViewer {
                 {
                     node.Data.isSearchedStatus = true;
 
-                    if (Regex.IsMatch(node.Data.fullStackMessage, this.searchText))
+                    try
                     {
-                        node.Data.isVisible = true;
-                    }
-                    else
-                    {
-                        string str = this.searchText.ToLower();
-                        string input = node.Data.fullStackMessage.ToLower();
-                        if (Regex.IsMatch(input, str))
+                        if (Regex.IsMatch(node.Data.fullStackMessage, this.searchText))
                         {
                             node.Data.isVisible = true;
                         }
                         else
                         {
-                            node.Data.isVisible = input.Contains(str);
+                            string str = this.searchText.ToLower();
+                            string input = node.Data.fullStackMessage.ToLower();
+                            if (Regex.IsMatch(input, str))
+                            {
+                                node.Data.isVisible = true;
+                            }
+                            else
+                            {
+                                node.Data.isVisible = input.Contains(str);
+                            }
                         }
+                    }
+                    catch
+                    {
+                        string str = this.searchText.ToLower();
+                        string input = node.Data.fullStackMessage.ToLower();
+                        node.Data.isVisible = input.Contains(str);
                     }
                 }
             }
