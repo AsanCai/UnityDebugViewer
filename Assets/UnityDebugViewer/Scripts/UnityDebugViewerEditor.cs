@@ -74,7 +74,7 @@ namespace UnityDebugViewer
                     {
                         string input = log.info.ToLower();
                         string pattern = searchText.ToLower();
-                        input.Contains(pattern);
+                        return input.Contains(pattern);
                     }
                 }
             }

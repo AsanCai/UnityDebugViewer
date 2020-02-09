@@ -66,7 +66,7 @@ namespace UnityDebugViewer
         private string pcPort = string.Empty;
         private string phonePort = string.Empty;
         private bool startForwardProcess = false;
-        private bool onlyShowUnityLog = true;
+        private string logcatTagFilterStr = "Unity";
         private bool startLogcatProcess = false;
         private int preLogNum = 0;
         private string logFilePath;
@@ -277,7 +277,13 @@ namespace UnityDebugViewer
                             GUI.enabled = true;
                             break;
                         case UnityDebugViewerEditorType.ADBLogcat:
-                            onlyShowUnityLog = GUILayout.Toggle(onlyShowUnityLog, new GUIContent("Only Unity"), EditorStyles.toolbarButton);
+
+                            GUILayout.Label(new GUIContent("Tag Filter: "), EditorStyles.label);
+                            this.logcatTagFilterStr = GUILayout.TextField(this.logcatTagFilterStr, EditorStyles.toolbarTextField, GUILayout.MinWidth(50f), GUILayout.MaxWidth(100f));
+                            //if (string.IsNullOrEmpty(this.logcatTagFilterStr))
+                            //{
+                            //      this.logcatTagFilterStr = "Unity";
+                            //}
 
                             GUI.enabled = !startLogcatProcess;
                             if (GUILayout.Button(new GUIContent("Start"), EditorStyles.toolbarButton))
@@ -443,9 +449,8 @@ namespace UnityDebugViewer
 
                         string textStr = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
                         var textAreaGUIContent = new GUIContent(textStr);
-                        var textAreaSize = textAreaStyle.CalcSize(textAreaGUIContent);
-
-                        EditorGUILayout.SelectableLabel(textStr, textAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(textAreaSize.y));
+                        var textAreaHeight = textAreaStyle.CalcHeight(textAreaGUIContent, lowerPanelRect.width);
+                        EditorGUILayout.SelectableLabel(textStr, textAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(textAreaHeight));
 
                         GUILayout.Box("", GUILayout.Height(splitHeight), GUILayout.ExpandWidth(true));
 
@@ -760,7 +765,7 @@ namespace UnityDebugViewer
                 return;
             }
 
-            startLogcatProcess = UnityDebugViewerADBUtility.StartLogcatProcess(LogcatDataHandler, "Unity", adbPath);
+            startLogcatProcess = UnityDebugViewerADBUtility.StartLogcatProcess(LogcatDataHandler, logcatTagFilterStr, adbPath);
         }
 
         private void StopADBLogcat()
