@@ -9,7 +9,64 @@ namespace UnityDebugViewer
 {
     public static class UnityDebugViewerWindowUtility 
     {
-        private static string adbPath = string.Empty;
+        public static string CopyPasteTextField(string value, GUIStyle style, params GUILayoutOption[] options)
+        {
+            int textFieldID = GUIUtility.GetControlID("TextField".GetHashCode(), FocusType.Keyboard) + 1;
+            if (textFieldID == 0)
+            {
+                return value;
+            }
+
+            // Handle custom copy-paste
+            value = HandleCopyPaste(textFieldID) ?? value;
+
+            return GUILayout.TextField(value, style, options);
+        }
+        public static string HandleCopyPaste(int controlID)
+        {
+            if (controlID == GUIUtility.keyboardControl)
+            {
+                if (Event.current.type == EventType.KeyUp && (Event.current.modifiers == EventModifiers.Control || Event.current.modifiers == EventModifiers.Command))
+                {
+                    if (Event.current.keyCode == KeyCode.C)
+                    {
+                        Event.current.Use();
+                        TextEditor editor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                        editor.Copy();
+                    }
+                    else if (Event.current.keyCode == KeyCode.V)
+                    {
+                        Event.current.Use();
+                        TextEditor editor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                        editor.Paste();
+#if UNITY_5_3_OR_NEWER || UNITY_5_3
+                        return editor.text; 
+#else
+                        return editor.content.text;
+#endif
+                    }
+                    else if(Event.current.keyCode == KeyCode.A)
+                    {
+                        Event.current.Use();
+                        TextEditor editor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                        editor.SelectAll();
+                    }
+                    else if(Event.current.keyCode == KeyCode.X)
+                    {
+                        Event.current.Use();
+                        TextEditor editor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                        editor.Copy();
+                        editor.DeleteSelection();
+#if UNITY_5_3_OR_NEWER || UNITY_5_3
+                        return editor.text;
+#else
+                        return editor.content.text;
+#endif
+                    }
+                }
+            }
+            return null;
+        }
 
         public static bool JumpToSource(LogData log)
         {
@@ -134,6 +191,8 @@ namespace UnityDebugViewer
             }
         }
 
+
+        private static string adbPath = string.Empty;
         public static string GetAdbPath()
         {
             if (!String.IsNullOrEmpty(adbPath))

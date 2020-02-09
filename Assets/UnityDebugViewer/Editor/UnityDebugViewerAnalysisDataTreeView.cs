@@ -100,7 +100,7 @@ namespace UnityDebugViewer
 
         protected virtual bool OnGetLayoutHeight(UnityDebugViewerAnalysisDataTreeItem node)
         {
-            if (node.Data == null || node.Data.isVisible == false)
+            if (UnityDebugViewerAnalysisData.IsNullOrEmpty(node.Data) || node.Data.isVisible == false)
             {
                 return true;
             }
@@ -111,7 +111,7 @@ namespace UnityDebugViewer
 
         protected virtual bool OnDrawRow(UnityDebugViewerAnalysisDataTreeItem node)
         {
-            if (node.Data == null || node.Data.isVisible == false)
+            if (UnityDebugViewerAnalysisData.IsNullOrEmpty(node.Data) || node.Data.isVisible == false)
             {
                 return true;
             }
@@ -139,7 +139,7 @@ namespace UnityDebugViewer
 
         protected virtual void OnDrawTreeNode(Rect rowRect, UnityDebugViewerAnalysisDataTreeItem node, bool selected, bool focus)
         {
-            if (node == null || node.Data == null)
+            if (UnityDebugViewerAnalysisData.IsNullOrEmpty(node.Data) || node.Data == null)
             {
                 return;
             }
@@ -188,7 +188,5 @@ namespace UnityDebugViewer
             }
             DrawColumn(columnGUIContentArray, rowStyle, rowRect);
         }
-
-
     }
 }

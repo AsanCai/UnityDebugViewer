@@ -136,7 +136,7 @@ namespace UnityDebugViewer
             logFilter.searchText = searchText;
             shouldUpdateLogFilter = true;
 
-            analysisDataTreeView = new UnityDebugViewerAnalysisDataTreeView(this.editorManager.activeEditor.analysisDataManager.Root);
+            analysisDataTreeView = new UnityDebugViewerAnalysisDataTreeView(this.editorManager.activeEditor.analysisDataManager.root);
 
             UnityDebugViewerTransferUtility.disconnectToServerEvent += DisconnectToServerHandler;
 #if UNITY_2017_2_OR_NEWER
@@ -231,7 +231,7 @@ namespace UnityDebugViewer
                     this.editorManager.activeEditorType = (UnityDebugViewerEditorType)EditorGUILayout.EnumPopup(this.editorManager.activeEditorType, EditorStyles.toolbarPopup, GUILayout.Width(size.x));
                     if (EditorGUI.EndChangeCheck())
                     {
-                        this.analysisDataTreeView = new UnityDebugViewerAnalysisDataTreeView(this.editorManager.activeEditor.analysisDataManager.Root);
+                        this.analysisDataTreeView = new UnityDebugViewerAnalysisDataTreeView(this.editorManager.activeEditor.analysisDataManager.root);
                         this.shouldUpdateLogFilter = true;
                     }
 
@@ -310,14 +310,14 @@ namespace UnityDebugViewer
 
                     GUILayout.FlexibleSpace();
 
-                    EditorGUI.BeginChangeCheck();
-                    this.searchText = GUILayout.TextField(this.searchText, UnityDebugViewerWindowConstant.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
+                    string tempSearchText = UnityDebugViewerWindowUtility.CopyPasteTextField(this.searchText, UnityDebugViewerWindowConstant.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
                     if (GUILayout.Button("", UnityDebugViewerWindowConstant.toolbarCancelButtonStyle))
                     {
-                        this.searchText = string.Empty;
+                        tempSearchText = string.Empty;
                     }
-                    if (EditorGUI.EndChangeCheck())
+                    if (tempSearchText.Equals(this.searchText) == false)
                     {
+                        this.searchText = tempSearchText;
                         this.logFilter.searchText = this.searchText;
                         this.shouldUpdateLogFilter = true;
                     }
@@ -521,14 +521,14 @@ namespace UnityDebugViewer
 
                     GUILayout.FlexibleSpace();
 
-                    EditorGUI.BeginChangeCheck();
-                    this.analysisSearchText = GUILayout.TextField(this.analysisSearchText, UnityDebugViewerWindowConstant.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
+                    string tempSearchText = UnityDebugViewerWindowUtility.CopyPasteTextField(this.analysisSearchText, UnityDebugViewerWindowConstant.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
                     if (GUILayout.Button("", UnityDebugViewerWindowConstant.toolbarCancelButtonStyle))
                     {
-                        this.analysisSearchText = string.Empty;
+                        tempSearchText = string.Empty;
                     }
-                    if (EditorGUI.EndChangeCheck())
+                    if (tempSearchText.Equals(this.analysisSearchText) == false)
                     {
+                        this.analysisSearchText = tempSearchText;
                         this.editorManager.activeEditor.analysisDataManager.Search(this.analysisSearchText);
                     }
                 }

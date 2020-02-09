@@ -5,11 +5,14 @@ using UnityEngine;
 
 namespace UnityDebugViewer {
     [Serializable]
-	public class UnityDebugViewerAnalysisDataManager
-	{
+	public class UnityDebugViewerAnalysisDataManager : ISerializationCallbackReceiver
+    {
+        [SerializeField]
+        private UnityDebugViewerAnalysisDataTreeItemPool poolInstance;
+
         [SerializeField]
         private UnityDebugViewerAnalysisDataTreeItem _root;
-        public UnityDebugViewerAnalysisDataTreeItem Root
+        public UnityDebugViewerAnalysisDataTreeItem root
         {
             get
             {
@@ -33,18 +36,19 @@ namespace UnityDebugViewer {
 
         public void Clear()
 		{
-			Root.Clear();
-		}
+            UnityDebugViewerAnalysisDataTreeItemPool.Instance.Clear();
+            root.Clear();
+        }
 
         public void Sort()
         {
-            Root.Traverse(OnSortChildren);
+            root.Traverse(OnSortChildren);
         }
 
         public void Sort(AnalysisDataSortType type)
         {
             this.sortType = type;
-            Root.Traverse(OnSortChildren);
+            root.Traverse(OnSortChildren);
         }
 
         public void Search(string searchText)
@@ -55,7 +59,7 @@ namespace UnityDebugViewer {
             }
 
             this.searchText = searchText;
-            Root.Traverse(OnSearchChildren);
+            root.Traverse(OnSearchChildren);
         }
 
         private bool OnSortChildren(UnityDebugViewerAnalysisDataTreeItem node)
@@ -67,27 +71,25 @@ namespace UnityDebugViewer {
 
         private bool OnSearchChildren(UnityDebugViewerAnalysisDataTreeItem node)
         {
-            var analysisData = node.Data as UnityDebugViewerAnalysisData;
-
-            if (analysisData != null)
+            if (node.Data != null)
             {
                 if (string.IsNullOrEmpty(searchText))
                 {
-                    analysisData.isSearchedStatus = false;
-                    analysisData.isVisible = true;
+                    node.Data.isSearchedStatus = false;
+                    node.Data.isVisible = true;
                 }
                 else
                 {
-                    analysisData.isSearchedStatus = true;
+                    node.Data.isSearchedStatus = true;
 
-                    if (Regex.IsMatch(analysisData.fullStackMessage, this.searchText))
+                    if (Regex.IsMatch(node.Data.fullStackMessage, this.searchText))
                     {
                         node.Data.isVisible = true;
                     }
                     else
                     {
                         string str = this.searchText.ToLower();
-                        string input = analysisData.fullStackMessage.ToLower();
+                        string input = node.Data.fullStackMessage.ToLower();
                         if (Regex.IsMatch(input, str))
                         {
                             node.Data.isVisible = true;
@@ -100,6 +102,12 @@ namespace UnityDebugViewer {
                 }
             }
 
+            return true;
+        }
+
+        private bool OnResetData(UnityDebugViewerAnalysisDataTreeItem node)
+        {
+            node.ResetData();
             return true;
         }
 
@@ -164,5 +172,15 @@ namespace UnityDebugViewer {
             }
 		}
 
-	}
+        void ISerializationCallbackReceiver.OnBeforeSerialize()
+        {
+            poolInstance = UnityDebugViewerAnalysisDataTreeItemPool.Instance;
+        }
+
+        void ISerializationCallbackReceiver.OnAfterDeserialize()
+        {
+            UnityDebugViewerAnalysisDataTreeItemPool.Instance.ResetInstance(poolInstance);
+            root.Traverse(OnResetData);
+        }
+    }
 }

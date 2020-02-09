@@ -57,6 +57,11 @@ namespace UnityDebugViewer
             this.isVisible = true;
         }
 
+        public static bool IsNullOrEmpty(UnityDebugViewerAnalysisData data)
+        {
+            return data == null || string.IsNullOrEmpty(data.fullStackMessage);
+        }
+
         public string[] getColumnArray()
         {
             string[] columnArray = new string[]
