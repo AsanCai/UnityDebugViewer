@@ -137,6 +137,14 @@ namespace UnityDebugViewer
             }
         }
 
+        public int totalLogNum
+        {
+            get
+            {
+                return logList.Count;
+            }
+        }
+
         protected List<LogData> _logList = null;
         protected List<LogData> logList
         {

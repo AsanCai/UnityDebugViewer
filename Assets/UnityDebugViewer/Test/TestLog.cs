@@ -8,6 +8,14 @@ public class TestLog : MonoBehaviour
 {
     string info = string.Empty;
     float timer = 0f;
+    private void Awake()
+    {
+        for (int i = 0; i < 5000; i++)
+        {
+            Debug.LogFormat("pass {0}s;", i);
+        }
+    }
+
     void Update()
     {
         GenerateLog(Time.deltaTime);
@@ -18,8 +26,8 @@ public class TestLog : MonoBehaviour
         timer += deltaTime;
         if (timer >= 1)
         {
-            UnityDebugViewerLogger.Log("pass 1s;");
-            Debug.LogFormat("pass {0}s;", 1);
+            //UnityDebugViewerLogger.LogWarning("pass 1s;");
+            Debug.LogWarningFormat("pass {0}s;", 1);
 
             timer = 0f;
         }

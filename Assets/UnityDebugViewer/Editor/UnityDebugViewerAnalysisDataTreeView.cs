@@ -148,11 +148,11 @@ namespace UnityDebugViewer
             rowStyle.alignment = TextAnchor.MiddleLeft;
             if (selected)
             {
-                rowStyle.normal.background = UnityDebugViewerWindowConstant.boxLogBgSelected;
+                rowStyle.normal.background = UnityDebugViewerWindowConstant.boxBgSelected;
             }
             else
             {
-                rowStyle.normal.background = node.Row % 2 == 0 ? UnityDebugViewerWindowConstant.boxLogBgOdd : UnityDebugViewerWindowConstant.boxLogBgEven;
+                rowStyle.normal.background = node.Row % 2 == 0 ? UnityDebugViewerWindowConstant.boxBgOdd : UnityDebugViewerWindowConstant.boxBgEven;
             }
 
             EditorGUI.LabelField(rowRect, GUIContent.none, rowStyle);

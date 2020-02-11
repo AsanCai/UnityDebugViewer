@@ -7,6 +7,22 @@ namespace UnityDebugViewer
 {
     public struct UnityDebugViewerWindowConstant 
     {
+        private static GUIStyle _logFullMessageAreaStyle;
+        public static GUIStyle logFullMessageAreaStyle
+        {
+            get
+            {
+                if (_logFullMessageAreaStyle == null)
+                {
+                    _logFullMessageAreaStyle = GUI.skin.GetStyle("Wizard Box");
+                    _logFullMessageAreaStyle.wordWrap = true;
+                    _logFullMessageAreaStyle.alignment = TextAnchor.UpperLeft;
+                }
+
+                return _logFullMessageAreaStyle;
+            }
+        }
+
         private static GUIStyle _collapsedNumLabelStyle;
         public static GUIStyle collapsedNumLabelStyle
         {
@@ -134,7 +150,7 @@ namespace UnityDebugViewer
         }
 
         private static Texture2D _bgLogBoxOdd;
-        public static Texture2D boxLogBgOdd
+        public static Texture2D boxBgOdd
         {
             get
             {
@@ -148,7 +164,7 @@ namespace UnityDebugViewer
         }
 
         private static Texture2D _boxLogBgEven;
-        public static Texture2D boxLogBgEven
+        public static Texture2D boxBgEven
         {
             get
             {
@@ -162,7 +178,7 @@ namespace UnityDebugViewer
         }
 
         private static Texture2D _boxLogBgSelected;
-        public static Texture2D boxLogBgSelected
+        public static Texture2D boxBgSelected
         {
             get
             {
@@ -189,47 +205,33 @@ namespace UnityDebugViewer
             }
         }
 
-        private static Texture2D _bgTextArea;
-        public static Texture2D bgTextArea
-        {
-            get
-            {
-                if (_bgTextArea == null)
-                {
-                    _bgTextArea = GUI.skin.GetStyle("ProjectBrowserIconAreaBg").normal.background;
-                }
+        //private static Texture2D _bgStackBoxOdd;
+        //public static Texture2D boxgStackBgOdd
+        //{
+        //    get
+        //    {
+        //        if (_bgStackBoxOdd == null)
+        //        {
+        //            _bgStackBoxOdd = GUI.skin.GetStyle("CN EntryBackOdd").normal.background;
+        //        }
 
-                return _bgTextArea;
-            }
-        }
+        //        return _bgStackBoxOdd;
+        //    }
+        //}
 
-        private static Texture2D _bgStackBoxOdd;
-        public static Texture2D boxgStackBgOdd
-        {
-            get
-            {
-                if (_bgStackBoxOdd == null)
-                {
-                    _bgStackBoxOdd = GUI.skin.GetStyle("CN EntryBackOdd").normal.background;
-                }
+        //private static Texture2D _boxStackBgEven;
+        //public static Texture2D boxStackBgEven
+        //{
+        //    get
+        //    {
+        //        if (_boxStackBgEven == null)
+        //        {
+        //            _boxStackBgEven = GUI.skin.GetStyle("CN EntryBackEven").normal.background;
+        //        }
 
-                return _bgStackBoxOdd;
-            }
-        }
-
-        private static Texture2D _boxStackBgEven;
-        public static Texture2D boxStackBgEven
-        {
-            get
-            {
-                if (_boxStackBgEven == null)
-                {
-                    _boxStackBgEven = GUI.skin.GetStyle("CN EntryBackEven").normal.background;
-                }
-
-                return _boxStackBgEven;
-            }
-        }
+        //        return _boxStackBgEven;
+        //    }
+        //}
 
     }
 }
