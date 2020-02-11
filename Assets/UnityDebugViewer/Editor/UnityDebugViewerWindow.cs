@@ -16,6 +16,9 @@ namespace UnityDebugViewer
         private bool isCompiling = false;
         private int selectedStackIndex = -1;
 
+        private Rect logBoxControlRect;
+        private int logBoxControlID;
+
         private Rect upperPanelRect;
         private Rect lowerPanelRect;
         private Rect resizerRecr;
@@ -77,7 +80,7 @@ namespace UnityDebugViewer
         private string logFilePath;
         private string searchText = string.Empty;
 
-        private Vector2 upperPanelScroll;
+        private Vector2 upperPanelScrollPos;
         private Vector2 lowerPanelScroll;
 
         private GUIStyle resizerStyle = new GUIStyle();
@@ -368,17 +371,16 @@ namespace UnityDebugViewer
 
             GUILayout.BeginArea(upperPanelRect);
             {
-                upperPanelScroll = GUILayout.BeginScrollView(upperPanelScroll);
+                upperPanelScrollPos = GUILayout.BeginScrollView(upperPanelScrollPos);
                 {
                     this.logList = this.editorManager.activeEditor.GetFilteredLogList(this.logFilter, this.shouldUpdateLogFilter);
                     this.shouldUpdateLogFilter = false;
 
                     if (this.logList != null)
                     {
-                        var logRect = EditorGUILayout.GetControlRect(false, logList.Count * logBoxHeight);
-                        var logControlID = GUIUtility.GetControlID(FocusType.Passive, logRect);
+                        this.logBoxControlRect = EditorGUILayout.GetControlRect(false, logList.Count * logBoxHeight);
+                        this.logBoxControlID = GUIUtility.GetControlID(FocusType.Passive, logBoxControlRect);
 
-                        var displayRect = new Rect(logRect.x, logRect.y + upperPanelScroll.y - logBoxHeight, logRect.width, upperPanelRect.height + logBoxHeight);
                         for (int i = 0; i < this.logList.Count; i++)
                         {
                             var log = this.logList[i];
@@ -387,9 +389,14 @@ namespace UnityDebugViewer
                                 continue;
                             }
 
-                            Rect logBoxRect = new Rect(logRect.x, logRect.y + i * logBoxHeight, logRect.width, logBoxHeight);
+                            Rect logBoxRect = new Rect(
+                                this.upperPanelRect.x, 
+                                this.logBoxControlRect.y + i * this.logBoxHeight,
+                                this.upperPanelRect.width, 
+                                this.logBoxHeight
+                                );
 
-                            if(ShouldLogBoxDisplay(displayRect, logBoxRect))
+                            if(ShouldLogBoxDisplay(i))
                             {
                                 DrawLogBox(log, logBoxRect, i % 2 == 0, i, collapse);
                             }
@@ -398,7 +405,7 @@ namespace UnityDebugViewer
                         /// if "Auto Scroll" is selected, then force scroll to the bottom when new log is added
                         if (this.preLogNum != logList.Count && autoScroll)
                         {
-                            upperPanelScroll.y = Mathf.Infinity;
+                            upperPanelScrollPos.y = Mathf.Infinity;
                         }
                         this.preLogNum = logList.Count;
                     }
@@ -408,9 +415,47 @@ namespace UnityDebugViewer
             GUILayout.EndArea();
         }
 
-        private bool ShouldLogBoxDisplay(Rect displayRect, Rect logBoxRect)
+        private bool ShouldLogBoxDisplay(int logIndex, bool displayComplete = false)
         {
-            return displayRect.Contains(logBoxRect.min) || displayRect.Contains(logBoxRect.max);
+            float top = (logIndex + 1) * logBoxHeight;
+            float bottom = logIndex * logBoxHeight;
+
+            float displayTop = this.logBoxControlRect.y + this.upperPanelScrollPos.y + this.upperPanelRect.height;
+            float displayBottom = this.logBoxControlRect.y + this.upperPanelScrollPos.y;
+            if (displayComplete)
+            {
+                displayTop -= this.logBoxHeight;
+                displayBottom += this.logBoxHeight;
+            }
+
+            if(top <= displayBottom || bottom >= displayTop)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        private void MoveToSpecificLogBox(int logIndex)
+        {
+            if (ShouldLogBoxDisplay(logIndex, true))
+            {
+                return;
+            }
+
+            float top = (logIndex + 1) * logBoxHeight;
+            float bottom = logIndex * logBoxHeight;
+
+            float displayTop = this.logBoxControlRect.y + this.upperPanelScrollPos.y + this.upperPanelRect.height;
+            float displayBottom = this.logBoxControlRect.y + this.upperPanelScrollPos.y;
+
+            float topDistance = displayTop - top;
+            float bottomDistance = displayBottom - bottom;
+            float moveDistacne = Mathf.Abs(topDistance) > Mathf.Abs(bottomDistance) ? bottomDistance : topDistance;
+
+            this.upperPanelScrollPos.y -= moveDistacne;
         }
 
         private void DrawLogBox(LogData log, Rect logBoxRect, bool isOdd, int index, bool isCollapsed = false)
@@ -457,7 +502,6 @@ namespace UnityDebugViewer
             logBoxStyle.alignment = logContentHeight > logBoxHeight ? TextAnchor.UpperLeft : TextAnchor.MiddleLeft;
             EditorGUI.LabelField(logBoxRect, logBoxGUIContent, logBoxStyle);
 
-
             var logBoxMidHeight = logBoxRect.y + logBoxRect.height / 2;
             var iconSize = iconStyle.CalcSize(GUIContent.none);
             var iconRect = new Rect(5, logBoxMidHeight - iconSize.y / 2, iconSize.x, iconSize.y);
@@ -477,7 +521,8 @@ namespace UnityDebugViewer
             /// process event
             if (logBoxRect.Contains(Event.current.mousePosition))
             {
-                if (Event.current.type == EventType.MouseDown)
+                EventType eventType = Event.current.GetTypeForControl(this.logBoxControlID);
+                if (eventType == EventType.MouseDown)
                 {
                     this.editorManager.activeEditor.selectedLogIndex = index;
 
@@ -486,9 +531,29 @@ namespace UnityDebugViewer
                         UnityDebugViewerWindowUtility.JumpToSource(log);
                     }
                 }
-                else if (Event.current.button == 1 && Event.current.type == EventType.MouseUp)
+                else if (eventType == EventType.MouseUp && Event.current.button == 1)
                 {
                     ShowCopyMenu(log.info);
+                }
+                else if(eventType == EventType.KeyUp)
+                {
+                    bool changeSelectedLog = false;
+                    if(Event.current.keyCode == KeyCode.UpArrow)
+                    {
+                        this.editorManager.activeEditor.selectedLogIndex--;
+                        changeSelectedLog = true;
+                    }
+                    else if(Event.current.keyCode == KeyCode.DownArrow)
+                    {
+                        this.editorManager.activeEditor.selectedLogIndex++;
+                        changeSelectedLog = true;
+                    }
+
+                    this.editorManager.activeEditor.selectedLogIndex = Mathf.Clamp(this.editorManager.activeEditor.selectedLogIndex, 0, this.logList.Count - 1);
+                    if (changeSelectedLog)
+                    {
+                        MoveToSpecificLogBox(this.editorManager.activeEditor.selectedLogIndex);
+                    }
                 }
             }
         }

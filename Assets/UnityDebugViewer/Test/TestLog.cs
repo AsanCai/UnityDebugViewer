@@ -26,7 +26,7 @@ public class TestLog : MonoBehaviour
         timer += deltaTime;
         if (timer >= 1)
         {
-            //UnityDebugViewerLogger.LogWarning("pass 1s;");
+            UnityDebugViewerLogger.LogWarning("pass 1s;");
             Debug.LogWarningFormat("pass {0}s;", 1);
 
             timer = 0f;
