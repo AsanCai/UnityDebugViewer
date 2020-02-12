@@ -14,14 +14,18 @@ namespace UnityDebugViewer
     {
         private bool isPlaying = false;
         private bool isCompiling = false;
+        private int preSelectedLogIndex = -1;
         private int selectedStackIndex = -1;
+        private List<Rect> stackRectList = new List<Rect>();
+
+        private int logBoxControlID;
+        private int stackBoxControlID;
+        private int resizerControlID;
 
         private Rect logBoxControlRect;
-        private int logBoxControlID;
-
         private Rect upperPanelRect;
         private Rect lowerPanelRect;
-        private Rect resizerRecr;
+        private Rect resizerRect;
         private Rect menuBarRect;
 
         private float sizeRatio = 0.5f;
@@ -29,6 +33,8 @@ namespace UnityDebugViewer
 
         private float resizerHeight = 5f;
         private float menuBarHeight = 20f;
+        private float splitHeight = 3f;
+        private float logFullMessageAreaHeight;
         private float logBoxHeight
         {
             get
@@ -81,7 +87,8 @@ namespace UnityDebugViewer
         private string searchText = string.Empty;
 
         private Vector2 upperPanelScrollPos;
-        private Vector2 lowerPanelScroll;
+        private Vector2 stackPanelScrollPos;
+        private Vector2 analysisPanelScrollPos;
 
         private GUIStyle resizerStyle = new GUIStyle();
         private GUIStyle logBoxStyle = new GUIStyle();
@@ -190,8 +197,6 @@ namespace UnityDebugViewer
             DrawUpperPanel();
             DrawResizer();
             DrawLowerPanel();
-
-            ProcessEvents(Event.current);
         }
 
         private void DrawMenuBar()
@@ -396,7 +401,7 @@ namespace UnityDebugViewer
                                 this.logBoxHeight
                                 );
 
-                            if(ShouldLogBoxDisplay(i))
+                            if(ShouldLogBoxShow(i))
                             {
                                 DrawLogBox(log, logBoxRect, i % 2 == 0, i, collapse);
                             }
@@ -407,6 +412,16 @@ namespace UnityDebugViewer
                         {
                             upperPanelScrollPos.y = Mathf.Infinity;
                         }
+
+                        if(this.preSelectedLogIndex != this.editorManager.activeEditor.selectedLogIndex || this.stackRectList.Count == 0)
+                        {
+                            this.stackRectList.Clear();
+                            for(int i = 0;i < this.editorManager.activeEditor.selectedLog.stackList.Count; i++)
+                            {
+                                stackRectList.Add(Rect.zero);
+                            }
+                            this.preSelectedLogIndex = this.editorManager.activeEditor.selectedLogIndex;
+                        }
                         this.preLogNum = logList.Count;
                     }
                 }
@@ -415,47 +430,26 @@ namespace UnityDebugViewer
             GUILayout.EndArea();
         }
 
-        private bool ShouldLogBoxDisplay(int logIndex, bool displayComplete = false)
+        private bool ShouldLogBoxShow(int logIndex)
         {
-            float top = (logIndex + 1) * logBoxHeight;
-            float bottom = logIndex * logBoxHeight;
+            float rectTop = (logIndex + 1) * logBoxHeight;
+            float rectBottom = logIndex * logBoxHeight;
 
-            float displayTop = this.logBoxControlRect.y + this.upperPanelScrollPos.y + this.upperPanelRect.height;
-            float displayBottom = this.logBoxControlRect.y + this.upperPanelScrollPos.y;
-            if (displayComplete)
-            {
-                displayTop -= this.logBoxHeight;
-                displayBottom += this.logBoxHeight;
-            }
+            float showTop = this.logBoxControlRect.y + this.upperPanelScrollPos.y + this.upperPanelRect.height;
+            float showBottom = this.logBoxControlRect.y + this.upperPanelScrollPos.y;
 
-            if(top <= displayBottom || bottom >= displayTop)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
+            return UnityDebugViewerWindowUtility.ShouldRectShow(showTop, showBottom, rectTop, rectBottom, false);
         }
 
         private void MoveToSpecificLogBox(int logIndex)
         {
-            if (ShouldLogBoxDisplay(logIndex, true))
-            {
-                return;
-            }
+            float rectTop = (logIndex + 1) * logBoxHeight;
+            float rectBottom = logIndex * logBoxHeight;
 
-            float top = (logIndex + 1) * logBoxHeight;
-            float bottom = logIndex * logBoxHeight;
+            float showTop = this.logBoxControlRect.y + this.upperPanelScrollPos.y + this.upperPanelRect.height;
+            float showBottom = this.logBoxControlRect.y + this.upperPanelScrollPos.y;
 
-            float displayTop = this.logBoxControlRect.y + this.upperPanelScrollPos.y + this.upperPanelRect.height;
-            float displayBottom = this.logBoxControlRect.y + this.upperPanelScrollPos.y;
-
-            float topDistance = displayTop - top;
-            float bottomDistance = displayBottom - bottom;
-            float moveDistacne = Mathf.Abs(topDistance) > Mathf.Abs(bottomDistance) ? bottomDistance : topDistance;
-
-            this.upperPanelScrollPos.y -= moveDistacne;
+            UnityDebugViewerWindowUtility.MoveToSpecificRect(showTop, showBottom, rectTop, rectBottom, ref this.upperPanelScrollPos);
         }
 
         private void DrawLogBox(LogData log, Rect logBoxRect, bool isOdd, int index, bool isCollapsed = false)
@@ -485,7 +479,7 @@ namespace UnityDebugViewer
 
             logBoxStyle.wordWrap = true;
             logBoxStyle.clipping = TextClipping.Clip;
-            logBoxStyle.padding = new RectOffset(30, 10, 5, 5);
+            logBoxStyle.padding = new RectOffset(35, 10, 5, 5);
             if (index == this.editorManager.activeEditor.selectedLogIndex)
             {
                 logBoxStyle.normal.background = UnityDebugViewerWindowConstant.boxBgSelected;
@@ -530,10 +524,14 @@ namespace UnityDebugViewer
                     {
                         UnityDebugViewerWindowUtility.JumpToSource(log);
                     }
+
+                    Event.current.Use();
                 }
                 else if (eventType == EventType.MouseUp && Event.current.button == 1)
                 {
                     ShowCopyMenu(log.info);
+
+                    Event.current.Use();
                 }
                 else if(eventType == EventType.KeyUp)
                 {
@@ -553,6 +551,7 @@ namespace UnityDebugViewer
                     if (changeSelectedLog)
                     {
                         MoveToSpecificLogBox(this.editorManager.activeEditor.selectedLogIndex);
+                        Event.current.Use();
                     }
                 }
             }
@@ -581,7 +580,7 @@ namespace UnityDebugViewer
 
             Rect analysisMenuBarRect = new Rect(lowerPanelRect.x, lowerPanelRect.y, lowerPanelRect.width, menuBarHeight);
             Rect titleRect = new Rect(lowerPanelRect.x, analysisMenuBarRect.y + analysisMenuBarRect.height, lowerPanelRect.width, 1.5f * EditorGUIUtility.singleLineHeight);
-            Rect analysisRect = new Rect(lowerPanelRect.x, titleRect.y + titleRect.height, lowerPanelRect.width, lowerPanelRect.height - titleRect.height);
+            Rect analysisRect = new Rect(lowerPanelRect.x, titleRect.y + titleRect.height, lowerPanelRect.width, lowerPanelRect.height - titleRect.height - analysisMenuBarRect.height);
 
             GUILayout.BeginArea(analysisMenuBarRect, EditorStyles.toolbar);
             {
@@ -614,9 +613,9 @@ namespace UnityDebugViewer
 
             GUILayout.BeginArea(analysisRect);
             {
-                lowerPanelScroll = GUILayout.BeginScrollView(lowerPanelScroll);
+                this.analysisPanelScrollPos = GUILayout.BeginScrollView(this.analysisPanelScrollPos);
                 {
-                    analysisDataTreeView.DrawTreeLayout();
+                    analysisDataTreeView.DrawTreeLayout(analysisRect, ref this.analysisPanelScrollPos);
                 }
                 GUILayout.EndScrollView();
             }
@@ -628,17 +627,21 @@ namespace UnityDebugViewer
 
         private void DrawStackMessage()
         {
-            GUILayout.BeginArea(lowerPanelRect);
+            GUILayout.BeginArea(this.lowerPanelRect);
             {
-                lowerPanelScroll = GUILayout.BeginScrollView(lowerPanelScroll);
+                this.stackBoxControlID = GUIUtility.GetControlID(FocusType.Passive, lowerPanelRect);
+
+                this.stackPanelScrollPos = GUILayout.BeginScrollView(this.stackPanelScrollPos);
                 {
                     var log = this.editorManager.activeEditor.selectedLog;
                     if (log != null && this.logFilter.ShouldDisplay(log))
                     {
                         string logFullMessage = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
                         var logFullMessageAreaGUIContent = new GUIContent(logFullMessage);
-                        var logFullMessageAreaHeight = UnityDebugViewerWindowConstant.logFullMessageAreaStyle.CalcHeight(logFullMessageAreaGUIContent, lowerPanelRect.width);
-                        EditorGUILayout.SelectableLabel(logFullMessage, UnityDebugViewerWindowConstant.logFullMessageAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(logFullMessageAreaHeight));
+                        this.logFullMessageAreaHeight = UnityDebugViewerWindowConstant.logFullMessageAreaStyle.CalcHeight(logFullMessageAreaGUIContent, this.lowerPanelRect.width);
+                        EditorGUILayout.SelectableLabel(logFullMessage, UnityDebugViewerWindowConstant.logFullMessageAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(this.logFullMessageAreaHeight));
+
+                        GUILayout.Label(GUIContent.none, GUI.skin.GetStyle("Wizard Box"), GUILayout.Height(this.splitHeight), GUILayout.ExpandWidth(true));
 
                         for (int i = 0; i < log.stackList.Count; i++)
                         {
@@ -666,6 +669,7 @@ namespace UnityDebugViewer
 
             string content = string.Format("\n{0}\n{1}", stack.fullStackMessage, stack.sourceContent);
             stackBoxStyle.wordWrap = true;
+            stackBoxStyle.padding = new RectOffset(10, 0, 0, 0);
             if (this.selectedStackIndex == index)
             {
                 stackBoxStyle.normal.background = UnityDebugViewerWindowConstant.boxBgSelected;
@@ -678,9 +682,15 @@ namespace UnityDebugViewer
             GUILayout.Label(new GUIContent(content), stackBoxStyle, GUILayout.ExpandWidth(true));
             Rect stackBoxRect = GUILayoutUtility.GetLastRect();
 
-            if (stackBoxRect.Contains(Event.current.mousePosition))
+            EventType eventType = Event.current.GetTypeForControl(this.stackBoxControlID);
+            if(eventType == EventType.Repaint && stackRectList[index] == Rect.zero)
             {
-                if (Event.current.type == EventType.MouseDown)
+                stackRectList[index] = stackBoxRect;
+            }
+
+            if (stackRectList[index].Contains(Event.current.mousePosition))
+            {
+                if (eventType == EventType.MouseDown)
                 {
                     if (Event.current.button == 0 && Event.current.clickCount == 2)
                     {
@@ -688,49 +698,94 @@ namespace UnityDebugViewer
                     }
 
                     this.selectedStackIndex = index;
+
+                    Event.current.Use();
                 }
-                else if (Event.current.button == 1 && Event.current.type == EventType.MouseUp)
+                else if (eventType == EventType.MouseUp && Event.current.button == 1)
                 {
                     ShowCopyMenu(stack.fullStackMessage);
+
+                    Event.current.Use();
+                }
+                else if(eventType == EventType.KeyUp)
+                {
+                    bool changeSeletedStack = false;
+
+                    if (Event.current.keyCode == KeyCode.UpArrow)
+                    {
+                        this.selectedStackIndex --;
+                        if(this.selectedStackIndex < 0)
+                        {
+                            this.selectedStackIndex = 0;
+                            this.stackPanelScrollPos.y = 0;
+                        }
+                        changeSeletedStack = true;
+                    }
+                    else if (Event.current.keyCode == KeyCode.DownArrow)
+                    {
+                        this.selectedStackIndex++;
+                        if(this.selectedStackIndex > this.editorManager.activeEditor.selectedLog.stackList.Count - 1)
+                        {
+                            this.selectedStackIndex = this.editorManager.activeEditor.selectedLog.stackList.Count - 1;
+                        }
+                        changeSeletedStack = true;
+                    }
+
+                    if (changeSeletedStack)
+                    {
+                        float showRectTop = this.stackPanelScrollPos.y + this.lowerPanelRect.height;
+                        float showRectBottom = this.stackPanelScrollPos.y;
+                        float rectTop = stackRectList[this.selectedStackIndex].y + stackRectList[this.selectedStackIndex].height;
+                        float rectBottom = stackRectList[this.selectedStackIndex].y;
+
+                        UnityDebugViewerWindowUtility.MoveToSpecificRect(showRectTop, showRectBottom, rectTop, rectBottom, ref this.stackPanelScrollPos);
+
+                        GUI.changed = true;
+                        Event.current.Use();
+                    }
                 }
             }
         }
 
         private void DrawResizer()
         {
-            resizerRecr = new Rect(0, (position.height * sizeRatio) - resizerHeight, position.width, resizerHeight * 2);
+            resizerRect = new Rect(0, (position.height * sizeRatio) - resizerHeight, position.width, resizerHeight * 2);
 
             resizerStyle.normal.background = UnityDebugViewerWindowConstant.bgResizer;
-            GUILayout.BeginArea(new Rect(resizerRecr.position + (Vector2.up * resizerHeight), new Vector2(position.width, 2)), resizerStyle);
+            GUILayout.BeginArea(new Rect(resizerRect.position + (Vector2.up * resizerHeight), new Vector2(position.width, 2)), resizerStyle);
             GUILayout.EndArea();
 
-            EditorGUIUtility.AddCursorRect(resizerRecr, MouseCursor.ResizeVertical);
-        }
+            EditorGUIUtility.AddCursorRect(resizerRect, MouseCursor.ResizeVertical);
 
-
-        private void ProcessEvents(Event e)
-        {
-            switch (e.type)
+            this.resizerControlID = GUIUtility.GetControlID(FocusType.Passive, resizerRect);
+            EventType eventType = Event.current.GetTypeForControl(this.resizerControlID);
+            if(eventType == EventType.MouseDown)
             {
-                case EventType.MouseDown:
-                    if (e.button == 0 && resizerRecr.Contains(e.mousePosition))
-                    {
-                        isResizing = true;
-                    }
-                    break;
-                case EventType.MouseDrag:
-                    if (isResizing)
-                    {
-                        sizeRatio = e.mousePosition.y / position.height;
-                        sizeRatio = Mathf.Clamp(sizeRatio, 0.1f, 0.9f);
-                        Repaint();
-                    }
-                    break;
+                if(Event.current.button == 0 && resizerRect.Contains(Event.current.mousePosition))
+                {
+                    isResizing = true;
+                    Event.current.Use();
+                }
+            }
+            else if(eventType == EventType.MouseDrag)
+            {
+                if (isResizing)
+                {
+                    sizeRatio = Event.current.mousePosition.y / position.height;
+                    sizeRatio = Mathf.Clamp(sizeRatio, 0.1f, 0.9f);
+                    Repaint();
 
-                case EventType.Ignore:
-                case EventType.MouseUp:
+                    Event.current.Use();
+                }
+            }
+            else if(eventType == EventType.Ignore || eventType == EventType.MouseUp)
+            {
+                if (isResizing)
+                {
                     isResizing = false;
-                    break;
+
+                    Event.current.Use();
+                }
             }
         }
 

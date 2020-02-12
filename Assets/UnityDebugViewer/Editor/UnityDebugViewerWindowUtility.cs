@@ -68,6 +68,7 @@ namespace UnityDebugViewer
             return null;
         }
 
+
         public static bool JumpToSource(LogData log)
         {
             if (log != null)
@@ -191,6 +192,58 @@ namespace UnityDebugViewer
             }
         }
 
+
+        public static bool ShouldRectShow(Rect showRect, Rect rect, bool showComplete = false)
+        {
+            float rectTop = rect.y + rect.height;
+            float rectBottom = rect.y ;
+            float showTop = showRect.y + showRect.height;
+            float showBottom = showRect.y;
+
+            return ShouldRectShow(showTop, showBottom, rectTop, rectBottom, showComplete);
+        }
+
+        public static bool ShouldRectShow(float showTop, float showBottom, float rectTop, float rectBottom, bool showComplete = false)
+        {
+            if (showComplete)
+            {
+                float rectHeight = rectTop - rectBottom;
+                showTop -= rectHeight;
+                showBottom += rectHeight;
+            }
+
+            return !(rectTop <= showBottom || rectBottom >= showTop);
+        }
+
+        public static void MoveToSpecificRect(Rect showRect, Rect rect, ref Vector2 scrollPos)
+        {
+            if(ShouldRectShow(showRect, rect, true))
+            {
+                return;
+            }
+
+            float rectTop = rect.y + rect.height;
+            float rectBottom = rect.y;
+
+            float showRectTop = showRect.y + showRect.height;
+            float showRectBottom = showRect.y;
+
+            MoveToSpecificRect(showRectTop, showRectBottom, rectTop, rectBottom, ref scrollPos);
+        }
+
+        public static void MoveToSpecificRect(float showRectTop, float showRectBottom, float rectTop, float rectBottom, ref Vector2 scrollPos)
+        {
+            if (ShouldRectShow(showRectTop, showRectBottom, rectTop, rectBottom, true))
+            {
+                return;
+            }
+
+            float topDistance = showRectTop - rectTop;
+            float bottomDistance = showRectBottom - rectBottom;
+            float moveDistacne = Mathf.Abs(topDistance) > Mathf.Abs(bottomDistance) ? bottomDistance : topDistance;
+
+            scrollPos.y -= moveDistacne;
+        }
 
         private static string adbPath = string.Empty;
         public static string GetAdbPath()

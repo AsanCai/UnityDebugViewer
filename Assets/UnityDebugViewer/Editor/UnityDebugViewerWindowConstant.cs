@@ -17,6 +17,7 @@ namespace UnityDebugViewer
                     _logFullMessageAreaStyle = GUI.skin.GetStyle("Wizard Box");
                     _logFullMessageAreaStyle.wordWrap = true;
                     _logFullMessageAreaStyle.alignment = TextAnchor.UpperLeft;
+                    _logFullMessageAreaStyle.padding = new RectOffset(5, 0, 0, 0);
                 }
 
                 return _logFullMessageAreaStyle;

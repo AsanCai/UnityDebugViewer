@@ -37,12 +37,18 @@ namespace UnityDebugViewer
         private float _height;
 
         [SerializeField]
-        private UnityDebugViewerAnalysisDataTreeItem _selected;
+        private UnityDebugViewerAnalysisDataTreeItem _selectedNode;
+        private int _selectedRow;
+        private bool _changeSelectedRow;
+        private Rect _panelRect;
+        private Vector2 _scrollPos;
         private int _controlID;
 
         public UnityDebugViewerAnalysisDataTreeView(UnityDebugViewerAnalysisDataTreeItem root)
         {
             _root = root;
+            _selectedRow = 0;
+            _changeSelectedRow = false;
         }
 
         public void DrawColumnTitle(Rect titleRect)
@@ -82,8 +88,11 @@ namespace UnityDebugViewer
             }
         }
 
-        public virtual void DrawTreeLayout()
+        public virtual void DrawTreeLayout(Rect panelRect, ref Vector2 scrollPos)
         {
+            _panelRect = panelRect;
+            _scrollPos = scrollPos;
+
             _height = 0;
             _drawY = 0;
             _root.Traverse(OnGetLayoutHeight);
@@ -91,6 +100,8 @@ namespace UnityDebugViewer
             _controlRect = EditorGUILayout.GetControlRect(false, _height);
             _controlID = GUIUtility.GetControlID(FocusType.Passive, _controlRect);
             _root.Traverse(OnDrawRow);
+
+            scrollPos = _scrollPos;
         }
 
         protected virtual float GetRowHeight(UnityDebugViewerAnalysisDataTreeItem node)
@@ -121,15 +132,58 @@ namespace UnityDebugViewer
             Rect rowRect = new Rect(0, _controlRect.y + _drawY, _controlRect.width, rowHeight);
 
             node.Row = (int)(_drawY / rowHeight);
-            OnDrawTreeNode(rowRect, node, _selected == node, false);
-
-            EventType eventType = Event.current.GetTypeForControl(_controlID);
-            if (eventType == EventType.MouseUp && rowRect.Contains(Event.current.mousePosition))
+            if (_changeSelectedRow && _selectedRow == node.Row)
             {
-                _selected = node;
+                _selectedNode = node;
+                _changeSelectedRow = false;
+                float showTop = _controlRect.y + _scrollPos.y + _panelRect.height;
+                float showBottom = _controlRect.y + _scrollPos.y;
+                float rectTop = rowRect.y + rowRect.height;
+                float rectBottom = rowRect.y;
+                UnityDebugViewerWindowUtility.MoveToSpecificRect(showTop, showBottom, rectTop, rectBottom, ref _scrollPos);
+            }
 
-                GUI.changed = true;
-                Event.current.Use();
+            OnDrawTreeNode(rowRect, node, _selectedNode == node, false);
+
+            if (rowRect.Contains(Event.current.mousePosition))
+            {
+                EventType eventType = Event.current.GetTypeForControl(_controlID);
+                if (eventType == EventType.MouseUp)
+                {
+                    _selectedNode = node;
+                    _selectedRow = node.Row;
+
+                    GUI.changed = true;
+                    Event.current.Use();
+                }
+                else if(eventType == EventType.KeyUp)
+                {
+                    if(Event.current.keyCode == KeyCode.UpArrow)
+                    {
+                        _selectedRow = _selectedNode.Row - 1;
+                        if(_selectedRow < 0)
+                        {
+                            _selectedRow = 0;
+                        }
+                        _changeSelectedRow = true;
+                    }
+                    else if(Event.current.keyCode == KeyCode.DownArrow)
+                    {
+                        _selectedRow = _selectedNode.Row + 1;
+                        int maxRow = (int)(_controlRect.height / rowHeight) - 1;
+                        if (_selectedRow > maxRow)
+                        {
+                            _selectedRow = maxRow;
+                        }
+                        _changeSelectedRow = true;
+                    }
+
+                    if (_changeSelectedRow)
+                    {
+                        GUI.changed = true;
+                        Event.current.Use();
+                    }
+                }
             }
 
             _drawY += rowHeight;
