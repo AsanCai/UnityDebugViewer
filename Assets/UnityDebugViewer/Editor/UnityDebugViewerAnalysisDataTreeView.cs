@@ -17,9 +17,9 @@ namespace UnityDebugViewer
                     _columnTitleGUIContentArray = new GUIContent[]
                     {
                         new GUIContent("Total Count"),
-                        new GUIContent("Log Count", UnityDebugViewerWindowConstant.infoIconStyle.normal.background),
-                        new GUIContent("Waring Count", UnityDebugViewerWindowConstant.warningIconStyle.normal.background),
-                        new GUIContent("Error Count", UnityDebugViewerWindowConstant.errorIconStyle.normal.background)
+                        new GUIContent("Log Count", UnityDebugViewerWindowStyleUtility.infoIconStyle.normal.background),
+                        new GUIContent("Waring Count", UnityDebugViewerWindowStyleUtility.warningIconStyle.normal.background),
+                        new GUIContent("Error Count", UnityDebugViewerWindowStyleUtility.errorIconStyle.normal.background)
                     };
                 }
 
@@ -148,7 +148,11 @@ namespace UnityDebugViewer
             if (rowRect.Contains(Event.current.mousePosition))
             {
                 EventType eventType = Event.current.GetTypeForControl(_controlID);
+#if UNITY_5 || UNITY_5_2_OR_NEWER
                 if (eventType == EventType.MouseUp)
+#else
+                if (eventType == EventType.mouseUp)
+#endif
                 {
                     _selectedNode = node;
                     _selectedRow = node.Row;
@@ -156,9 +160,13 @@ namespace UnityDebugViewer
                     GUI.changed = true;
                     Event.current.Use();
                 }
-                else if(eventType == EventType.KeyUp)
+#if UNITY_5 || UNITY_5_2_OR_NEWER
+                if (eventType == EventType.KeyUp)
+#else
+                if (eventType == EventType.keyUp)
+#endif
                 {
-                    if(Event.current.keyCode == KeyCode.UpArrow)
+                    if (Event.current.keyCode == KeyCode.UpArrow)
                     {
                         _selectedRow = _selectedNode.Row - 1;
                         if(_selectedRow < 0)
@@ -202,11 +210,11 @@ namespace UnityDebugViewer
             rowStyle.alignment = TextAnchor.MiddleLeft;
             if (selected)
             {
-                rowStyle.normal.background = UnityDebugViewerWindowConstant.boxBgSelected;
+                rowStyle.normal.background = UnityDebugViewerWindowStyleUtility.boxBgSelected;
             }
             else
             {
-                rowStyle.normal.background = node.Row % 2 == 0 ? UnityDebugViewerWindowConstant.boxBgOdd : UnityDebugViewerWindowConstant.boxBgEven;
+                rowStyle.normal.background = node.Row % 2 == 0 ? UnityDebugViewerWindowStyleUtility.boxBgOdd : UnityDebugViewerWindowStyleUtility.boxBgEven;
             }
 
             EditorGUI.LabelField(rowRect, GUIContent.none, rowStyle);

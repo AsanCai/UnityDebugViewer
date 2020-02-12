@@ -5,8 +5,30 @@ using UnityEngine;
 
 namespace UnityDebugViewer
 {
-    public struct UnityDebugViewerWindowConstant 
+    public static class UnityDebugViewerWindowStyleUtility 
     {
+        private static GUISkin _skin;
+        public static GUISkin skin
+        {
+            get
+            {
+                if(_skin == null)
+                {
+                    if (EditorGUIUtility.isProSkin)
+                    {
+                        _skin = EditorGUIUtility.GetBuiltinSkin(EditorSkin.Scene);
+                    }
+                    else
+                    {
+                        _skin = EditorGUIUtility.GetBuiltinSkin(EditorSkin.Inspector);
+                    }
+                }
+
+                return _skin;
+            }
+        }
+
+
         private static GUIStyle _logFullMessageAreaStyle;
         public static GUIStyle logFullMessageAreaStyle
         {
@@ -14,7 +36,7 @@ namespace UnityDebugViewer
             {
                 if (_logFullMessageAreaStyle == null)
                 {
-                    _logFullMessageAreaStyle = GUI.skin.GetStyle("Wizard Box");
+                    _logFullMessageAreaStyle = skin.GetStyle("Wizard Box");
                     _logFullMessageAreaStyle.wordWrap = true;
                     _logFullMessageAreaStyle.alignment = TextAnchor.UpperLeft;
                     _logFullMessageAreaStyle.padding = new RectOffset(5, 0, 0, 0);
@@ -31,7 +53,7 @@ namespace UnityDebugViewer
             {
                 if(_collapsedNumLabelStyle == null)
                 {
-                    _collapsedNumLabelStyle = GUI.skin.GetStyle("CN CountBadge");
+                    _collapsedNumLabelStyle = skin.GetStyle("CN CountBadge");
                 }
 
                 return _collapsedNumLabelStyle;
@@ -45,7 +67,11 @@ namespace UnityDebugViewer
             {
                 if (_errorIconStyle == null)
                 {
-                    _errorIconStyle = GUI.skin.GetStyle("CN EntryErrorIcon");
+                    string name = EditorGUIUtility.isProSkin ? "CN EntryError" : "CN EntryErrorIcon";
+                    if (_errorIconStyle == null)
+                    {
+                        _errorIconStyle = skin.GetStyle(name);
+                    }
                 }
 
                 return _errorIconStyle;
@@ -59,7 +85,11 @@ namespace UnityDebugViewer
             {
                 if (_errorIconSmallStyle == null)
                 {
-                    _errorIconSmallStyle = GUI.skin.GetStyle("CN EntryErrorIconSmall");
+                    string name = EditorGUIUtility.isProSkin ? "CN EntryError" : "CN EntryErrorIconSmall";
+                    if (_errorIconSmallStyle == null)
+                    {
+                        _errorIconSmallStyle = skin.GetStyle(name);
+                    }
                 }
 
                 return _errorIconSmallStyle;
@@ -73,7 +103,12 @@ namespace UnityDebugViewer
             {
                 if (_warningIconStyle == null)
                 {
-                    _warningIconStyle = GUI.skin.GetStyle("CN EntryWarnIcon");
+                    string name = EditorGUIUtility.isProSkin ? "CN EntryWarn" : "CN EntryWarnIcon";
+                    
+                    if (_warningIconStyle == null)
+                    {
+                        _warningIconStyle = skin.GetStyle(name);
+                    }
                 }
 
                 return _warningIconStyle;
@@ -87,7 +122,11 @@ namespace UnityDebugViewer
             {
                 if (_warningIconSmallStyle == null)
                 {
-                    _warningIconSmallStyle = GUI.skin.GetStyle("CN EntryWarnIconSmall");
+                    string name = EditorGUIUtility.isProSkin ? "CN EntryWarn" : "CN EntryWarnIconSmall";
+                    if (_warningIconSmallStyle == null)
+                    {
+                        _warningIconSmallStyle = skin.GetStyle(name);
+                    }
                 }
 
                 return _warningIconSmallStyle;
@@ -101,7 +140,11 @@ namespace UnityDebugViewer
             {
                 if (_infoIconStyle == null)
                 {
-                    _infoIconStyle = GUI.skin.GetStyle("CN EntryInfoIcon");
+                    string name = EditorGUIUtility.isProSkin ? "CN EntryInfo" : "CN EntryInfoIcon";
+                    if(_infoIconStyle == null)
+                    {
+                        _infoIconStyle = skin.GetStyle(name);
+                    }
                 }
 
                 return _infoIconStyle;
@@ -115,7 +158,13 @@ namespace UnityDebugViewer
             {
                 if (_infoIconSmallStyle == null)
                 {
-                    _infoIconSmallStyle = GUI.skin.GetStyle("CN EntryInfoIconSmall");
+                    string name = EditorGUIUtility.isProSkin ? "CN EntryInfo" : "CN EntryInfoIconSmall";
+                    //string name = "CN EntryInfoIconSmall";
+
+                    if (_infoIconSmallStyle == null)
+                    {
+                        _infoIconSmallStyle = skin.GetStyle(name);
+                    }
                 }
 
                 return _infoIconSmallStyle;
@@ -157,7 +206,8 @@ namespace UnityDebugViewer
             {
                 if (_bgLogBoxOdd == null)
                 {
-                    _bgLogBoxOdd = GUI.skin.GetStyle("OL EntryBackOdd").normal.background;
+                    var style = skin.GetStyle("OL EntryBackOdd");
+                    _bgLogBoxOdd = style.normal.background;
                 }
 
                 return _bgLogBoxOdd;
@@ -171,7 +221,7 @@ namespace UnityDebugViewer
             {
                 if (_boxLogBgEven == null)
                 {
-                    _boxLogBgEven = GUI.skin.GetStyle("OL EntryBackEven").normal.background;
+                    _boxLogBgEven = skin.GetStyle("OL EntryBackEven").normal.background;
                 }
 
                 return _boxLogBgEven;
@@ -185,7 +235,7 @@ namespace UnityDebugViewer
             {
                 if (_boxLogBgSelected == null)
                 {
-                    _boxLogBgSelected = GUI.skin.GetStyle("OL SelectedRow").normal.background;
+                    _boxLogBgSelected = skin.GetStyle("OL SelectedRow").normal.background;
                 }
 
                 return _boxLogBgSelected;
@@ -205,34 +255,5 @@ namespace UnityDebugViewer
                 return _bgResizer;
             }
         }
-
-        //private static Texture2D _bgStackBoxOdd;
-        //public static Texture2D boxgStackBgOdd
-        //{
-        //    get
-        //    {
-        //        if (_bgStackBoxOdd == null)
-        //        {
-        //            _bgStackBoxOdd = GUI.skin.GetStyle("CN EntryBackOdd").normal.background;
-        //        }
-
-        //        return _bgStackBoxOdd;
-        //    }
-        //}
-
-        //private static Texture2D _boxStackBgEven;
-        //public static Texture2D boxStackBgEven
-        //{
-        //    get
-        //    {
-        //        if (_boxStackBgEven == null)
-        //        {
-        //            _boxStackBgEven = GUI.skin.GetStyle("CN EntryBackEven").normal.background;
-        //        }
-
-        //        return _boxStackBgEven;
-        //    }
-        //}
-
     }
 }

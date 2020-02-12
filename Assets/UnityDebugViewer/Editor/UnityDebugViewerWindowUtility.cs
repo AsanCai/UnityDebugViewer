@@ -26,7 +26,13 @@ namespace UnityDebugViewer
         {
             if (controlID == GUIUtility.keyboardControl)
             {
-                if (Event.current.type == EventType.KeyUp && (Event.current.modifiers == EventModifiers.Control || Event.current.modifiers == EventModifiers.Command))
+                EventType eventType = Event.current.GetTypeForControl(controlID);
+                //if (Event.current.type == EventType.KeyUp && (Event.current.modifiers == EventModifiers.Control || Event.current.modifiers == EventModifiers.Command))
+#if UNITY_5 || UNITY_5_2_OR_NEWER
+                if (eventType == EventType.KeyUp && (Event.current.modifiers == EventModifiers.Control || Event.current.modifiers == EventModifiers.Command))
+#else
+                if (eventType == EventType.keyUp && (Event.current.modifiers == EventModifiers.Control || Event.current.modifiers == EventModifiers.Command))
+#endif
                 {
                     if (Event.current.keyCode == KeyCode.C)
                     {

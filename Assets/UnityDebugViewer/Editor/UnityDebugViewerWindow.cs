@@ -98,7 +98,7 @@ namespace UnityDebugViewer
         private static void OpenWindow()
         {
             UnityDebugViewerWindow window = GetWindow<UnityDebugViewerWindow>();
-#if UNITY_5 || UNITY_5_3_OR_NEWER
+#if UNITY_5 || UNITY_5_2_OR_NEWER
             window.titleContent = new GUIContent("Debug Viewer");
 #else
             window.title = "Debug Viewer";
@@ -332,8 +332,8 @@ namespace UnityDebugViewer
 
                     GUILayout.FlexibleSpace();
 
-                    string tempSearchText = UnityDebugViewerWindowUtility.CopyPasteTextField(this.searchText, UnityDebugViewerWindowConstant.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
-                    if (GUILayout.Button("", UnityDebugViewerWindowConstant.toolbarCancelButtonStyle))
+                    string tempSearchText = UnityDebugViewerWindowUtility.CopyPasteTextField(this.searchText, UnityDebugViewerWindowStyleUtility.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
+                    if (GUILayout.Button("", UnityDebugViewerWindowStyleUtility.toolbarCancelButtonStyle))
                     {
                         tempSearchText = string.Empty;
                     }
@@ -350,9 +350,9 @@ namespace UnityDebugViewer
                     string errorNum = this.editorManager.activeEditor.errorNum.ToString();
 
                     EditorGUI.BeginChangeCheck();
-                    showLog = GUILayout.Toggle(showLog, new GUIContent(logNum, UnityDebugViewerWindowConstant.infoIconSmallStyle.normal.background), EditorStyles.toolbarButton);
-                    showWarning = GUILayout.Toggle(showWarning, new GUIContent(warningNum, UnityDebugViewerWindowConstant.warningIconSmallStyle.normal.background), EditorStyles.toolbarButton);
-                    showError = GUILayout.Toggle(showError, new GUIContent(errorNum, UnityDebugViewerWindowConstant.errorIconSmallStyle.normal.background), EditorStyles.toolbarButton);
+                    showLog = GUILayout.Toggle(showLog, new GUIContent(logNum, UnityDebugViewerWindowStyleUtility.infoIconSmallStyle.normal.background), EditorStyles.toolbarButton);
+                    showWarning = GUILayout.Toggle(showWarning, new GUIContent(warningNum, UnityDebugViewerWindowStyleUtility.warningIconSmallStyle.normal.background), EditorStyles.toolbarButton);
+                    showError = GUILayout.Toggle(showError, new GUIContent(errorNum, UnityDebugViewerWindowStyleUtility.errorIconSmallStyle.normal.background), EditorStyles.toolbarButton);
                     if (EditorGUI.EndChangeCheck())
                     {
                         PlayerPrefs.SetInt(ShowLogPref, showLog ? 1 : 0);
@@ -416,9 +416,13 @@ namespace UnityDebugViewer
                         if(this.preSelectedLogIndex != this.editorManager.activeEditor.selectedLogIndex || this.stackRectList.Count == 0)
                         {
                             this.stackRectList.Clear();
-                            for(int i = 0;i < this.editorManager.activeEditor.selectedLog.stackList.Count; i++)
+                            var log = this.editorManager.activeEditor.selectedLog;
+                            if(log != null)
                             {
-                                stackRectList.Add(Rect.zero);
+                                for (int i = 0; i < log.stackList.Count; i++)
+                                {
+                                    stackRectList.Add(Rect.zero);
+                                }
                             }
                             this.preSelectedLogIndex = this.editorManager.activeEditor.selectedLogIndex;
                         }
@@ -460,13 +464,13 @@ namespace UnityDebugViewer
                 case LogType.Error:
                 case LogType.Exception:
                 case LogType.Assert:
-                    iconStyle = UnityDebugViewerWindowConstant.errorIconStyle;
+                    iconStyle = UnityDebugViewerWindowStyleUtility.errorIconStyle;
                     break;
                 case LogType.Warning:
-                    iconStyle = UnityDebugViewerWindowConstant.warningIconStyle;
+                    iconStyle = UnityDebugViewerWindowStyleUtility.warningIconStyle;
                     break;
                 case LogType.Log:
-                    iconStyle = UnityDebugViewerWindowConstant.infoIconStyle;
+                    iconStyle = UnityDebugViewerWindowStyleUtility.infoIconStyle;
                     break;
                 default:
                     iconStyle = null;
@@ -482,11 +486,11 @@ namespace UnityDebugViewer
             logBoxStyle.padding = new RectOffset(35, 10, 5, 5);
             if (index == this.editorManager.activeEditor.selectedLogIndex)
             {
-                logBoxStyle.normal.background = UnityDebugViewerWindowConstant.boxBgSelected;
+                logBoxStyle.normal.background = UnityDebugViewerWindowStyleUtility.boxBgSelected;
             }
             else
             {
-                logBoxStyle.normal.background = isOdd ? UnityDebugViewerWindowConstant.boxBgOdd : UnityDebugViewerWindowConstant.boxBgEven;
+                logBoxStyle.normal.background = isOdd ? UnityDebugViewerWindowStyleUtility.boxBgOdd : UnityDebugViewerWindowStyleUtility.boxBgEven;
             }
 
             GUI.DrawTexture(logBoxRect, logBoxStyle.normal.background);
@@ -506,17 +510,21 @@ namespace UnityDebugViewer
                 /// make sure the number label display in a fixed relative position of the window
                 int num = this.editorManager.activeEditor.GetLogNum(log);
                 GUIContent labelGUIContent = new GUIContent(num.ToString());
-                var labelSize = UnityDebugViewerWindowConstant.collapsedNumLabelStyle.CalcSize(labelGUIContent);
+                var labelSize = UnityDebugViewerWindowStyleUtility.collapsedNumLabelStyle.CalcSize(labelGUIContent);
                 Rect labelRect = new Rect(position.width - labelSize.x - 20, logBoxRect.y + logBoxRect.height / 2 - labelSize.y / 2, labelSize.x, labelSize.y);
 
-                EditorGUI.LabelField(labelRect, labelGUIContent, UnityDebugViewerWindowConstant.collapsedNumLabelStyle);
+                EditorGUI.LabelField(labelRect, labelGUIContent, UnityDebugViewerWindowStyleUtility.collapsedNumLabelStyle);
             }
 
             /// process event
             if (logBoxRect.Contains(Event.current.mousePosition))
             {
                 EventType eventType = Event.current.GetTypeForControl(this.logBoxControlID);
+#if UNITY_5 || UNITY_5_2_OR_NEWER
                 if (eventType == EventType.MouseDown)
+#else
+                if (eventType == EventType.mouseDown)
+#endif
                 {
                     this.editorManager.activeEditor.selectedLogIndex = index;
 
@@ -527,13 +535,21 @@ namespace UnityDebugViewer
 
                     Event.current.Use();
                 }
-                else if (eventType == EventType.MouseUp && Event.current.button == 1)
+#if UNITY_5 || UNITY_5_2_OR_NEWER
+                if (eventType == EventType.MouseUp && Event.current.button == 1)
+#else
+                if (eventType == EventType.mouseUp && Event.current.button == 1)
+#endif
                 {
                     ShowCopyMenu(log.info);
 
                     Event.current.Use();
                 }
-                else if(eventType == EventType.KeyUp)
+#if UNITY_5 || UNITY_5_2_OR_NEWER
+                if (eventType == EventType.KeyUp)
+#else
+                if (eventType == EventType.keyUp)
+#endif
                 {
                     bool changeSelectedLog = false;
                     if(Event.current.keyCode == KeyCode.UpArrow)
@@ -596,8 +612,8 @@ namespace UnityDebugViewer
 
                     GUILayout.FlexibleSpace();
 
-                    string tempSearchText = UnityDebugViewerWindowUtility.CopyPasteTextField(this.analysisSearchText, UnityDebugViewerWindowConstant.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
-                    if (GUILayout.Button("", UnityDebugViewerWindowConstant.toolbarCancelButtonStyle))
+                    string tempSearchText = UnityDebugViewerWindowUtility.CopyPasteTextField(this.analysisSearchText, UnityDebugViewerWindowStyleUtility.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
+                    if (GUILayout.Button("", UnityDebugViewerWindowStyleUtility.toolbarCancelButtonStyle))
                     {
                         tempSearchText = string.Empty;
                     }
@@ -638,8 +654,8 @@ namespace UnityDebugViewer
                     {
                         string logFullMessage = string.Format("{0}\n{1}\n", log.info, log.extraInfo);
                         var logFullMessageAreaGUIContent = new GUIContent(logFullMessage);
-                        this.logFullMessageAreaHeight = UnityDebugViewerWindowConstant.logFullMessageAreaStyle.CalcHeight(logFullMessageAreaGUIContent, this.lowerPanelRect.width);
-                        EditorGUILayout.SelectableLabel(logFullMessage, UnityDebugViewerWindowConstant.logFullMessageAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(this.logFullMessageAreaHeight));
+                        this.logFullMessageAreaHeight = UnityDebugViewerWindowStyleUtility.logFullMessageAreaStyle.CalcHeight(logFullMessageAreaGUIContent, this.lowerPanelRect.width);
+                        EditorGUILayout.SelectableLabel(logFullMessage, UnityDebugViewerWindowStyleUtility.logFullMessageAreaStyle, GUILayout.ExpandWidth(true), GUILayout.Height(this.logFullMessageAreaHeight));
 
                         GUILayout.Label(GUIContent.none, GUI.skin.GetStyle("Wizard Box"), GUILayout.Height(this.splitHeight), GUILayout.ExpandWidth(true));
 
@@ -672,11 +688,11 @@ namespace UnityDebugViewer
             stackBoxStyle.padding = new RectOffset(10, 0, 0, 0);
             if (this.selectedStackIndex == index)
             {
-                stackBoxStyle.normal.background = UnityDebugViewerWindowConstant.boxBgSelected;
+                stackBoxStyle.normal.background = UnityDebugViewerWindowStyleUtility.boxBgSelected;
             }
             else
             {
-                stackBoxStyle.normal.background = isOdd ? UnityDebugViewerWindowConstant.boxBgOdd : UnityDebugViewerWindowConstant.boxBgEven;
+                stackBoxStyle.normal.background = isOdd ? UnityDebugViewerWindowStyleUtility.boxBgOdd : UnityDebugViewerWindowStyleUtility.boxBgEven;
             }
 
             GUILayout.Label(new GUIContent(content), stackBoxStyle, GUILayout.ExpandWidth(true));
@@ -690,7 +706,11 @@ namespace UnityDebugViewer
 
             if (stackRectList[index].Contains(Event.current.mousePosition))
             {
+#if UNITY_5 || UNITY_5_2_OR_NEWER
                 if (eventType == EventType.MouseDown)
+#else
+                if (eventType == EventType.mouseDown)
+#endif
                 {
                     if (Event.current.button == 0 && Event.current.clickCount == 2)
                     {
@@ -701,13 +721,21 @@ namespace UnityDebugViewer
 
                     Event.current.Use();
                 }
-                else if (eventType == EventType.MouseUp && Event.current.button == 1)
+#if UNITY_5 || UNITY_5_2_OR_NEWER
+                if (eventType == EventType.MouseUp && Event.current.button == 1)
+#else
+                if (eventType == EventType.mouseUp && Event.current.button == 1)
+#endif
                 {
                     ShowCopyMenu(stack.fullStackMessage);
 
                     Event.current.Use();
                 }
-                else if(eventType == EventType.KeyUp)
+#if UNITY_5 || UNITY_5_2_OR_NEWER
+                if (eventType == EventType.KeyUp)
+#else
+                if (eventType == EventType.keyUp)
+#endif
                 {
                     bool changeSeletedStack = false;
 
@@ -751,7 +779,7 @@ namespace UnityDebugViewer
         {
             resizerRect = new Rect(0, (position.height * sizeRatio) - resizerHeight, position.width, resizerHeight * 2);
 
-            resizerStyle.normal.background = UnityDebugViewerWindowConstant.bgResizer;
+            resizerStyle.normal.background = UnityDebugViewerWindowStyleUtility.bgResizer;
             GUILayout.BeginArea(new Rect(resizerRect.position + (Vector2.up * resizerHeight), new Vector2(position.width, 2)), resizerStyle);
             GUILayout.EndArea();
 
@@ -759,15 +787,23 @@ namespace UnityDebugViewer
 
             this.resizerControlID = GUIUtility.GetControlID(FocusType.Passive, resizerRect);
             EventType eventType = Event.current.GetTypeForControl(this.resizerControlID);
-            if(eventType == EventType.MouseDown)
+#if UNITY_5 || UNITY_5_2_OR_NEWER
+            if (eventType == EventType.MouseDown)
+#else
+            if (eventType == EventType.mouseDown)
+#endif
             {
-                if(Event.current.button == 0 && resizerRect.Contains(Event.current.mousePosition))
+                if (Event.current.button == 0 && resizerRect.Contains(Event.current.mousePosition))
                 {
                     isResizing = true;
                     Event.current.Use();
                 }
             }
-            else if(eventType == EventType.MouseDrag)
+#if UNITY_5 || UNITY_5_2_OR_NEWER
+            if (eventType == EventType.MouseDrag)
+#else
+            if (eventType == EventType.mouseDrag)
+#endif
             {
                 if (isResizing)
                 {
@@ -778,7 +814,11 @@ namespace UnityDebugViewer
                     Event.current.Use();
                 }
             }
-            else if(eventType == EventType.Ignore || eventType == EventType.MouseUp)
+#if UNITY_5 || UNITY_5_2_OR_NEWER
+            if (eventType == EventType.Ignore || eventType == EventType.MouseUp)
+#else
+            if (eventType == EventType.ignore || eventType == EventType.mouseUp)
+#endif
             {
                 if (isResizing)
                 {
@@ -917,7 +957,11 @@ namespace UnityDebugViewer
             PlayerPrefs.SetInt(LogLineCountPref, count);
         }
 
+#if UNITY_2017_2_OR_NEWER
         private void PlayModeStateChangeHandler(PlayModeStateChange state)
+#else
+        private void PlayModeStateChangeHandler()
+#endif
         {
             if (!isPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
             {
