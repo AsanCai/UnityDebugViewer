@@ -91,8 +91,8 @@ namespace UnityDebugViewer
         private Vector2 analysisPanelScrollPos;
 
         private GUIStyle resizerStyle = new GUIStyle();
-        private GUIStyle logBoxStyle = new GUIStyle();
-        private GUIStyle stackBoxStyle = new GUIStyle();
+        private GUIStyle logBoxStyle;
+        private GUIStyle stackBoxStyle;
 
         [MenuItem("Window/Debug Viewer")]
         private static void OpenWindow()
@@ -350,9 +350,9 @@ namespace UnityDebugViewer
                     string errorNum = this.editorManager.activeEditor.errorNum.ToString();
 
                     EditorGUI.BeginChangeCheck();
-                    showLog = GUILayout.Toggle(showLog, new GUIContent(logNum, UnityDebugViewerWindowStyleUtility.infoIconSmallStyle.normal.background), EditorStyles.toolbarButton);
-                    showWarning = GUILayout.Toggle(showWarning, new GUIContent(warningNum, UnityDebugViewerWindowStyleUtility.warningIconSmallStyle.normal.background), EditorStyles.toolbarButton);
-                    showError = GUILayout.Toggle(showError, new GUIContent(errorNum, UnityDebugViewerWindowStyleUtility.errorIconSmallStyle.normal.background), EditorStyles.toolbarButton);
+                    showLog = GUILayout.Toggle(showLog, new GUIContent(logNum, UnityDebugViewerWindowStyleUtility.infoIconSmallTexture), EditorStyles.toolbarButton);
+                    showWarning = GUILayout.Toggle(showWarning, new GUIContent(warningNum, UnityDebugViewerWindowStyleUtility.warningIconSmallTexture), EditorStyles.toolbarButton);
+                    showError = GUILayout.Toggle(showError, new GUIContent(errorNum, UnityDebugViewerWindowStyleUtility.errorIconSmallTexture), EditorStyles.toolbarButton);
                     if (EditorGUI.EndChangeCheck())
                     {
                         PlayerPrefs.SetInt(ShowLogPref, showLog ? 1 : 0);
@@ -481,16 +481,14 @@ namespace UnityDebugViewer
                 return;
             }
 
-            logBoxStyle.wordWrap = true;
-            logBoxStyle.clipping = TextClipping.Clip;
-            logBoxStyle.padding = new RectOffset(35, 10, 5, 5);
+            
             if (index == this.editorManager.activeEditor.selectedLogIndex)
             {
-                logBoxStyle.normal.background = UnityDebugViewerWindowStyleUtility.boxBgSelected;
+                logBoxStyle = UnityDebugViewerWindowStyleUtility.selectedLogBoxStyle;
             }
             else
             {
-                logBoxStyle.normal.background = isOdd ? UnityDebugViewerWindowStyleUtility.boxBgOdd : UnityDebugViewerWindowStyleUtility.boxBgEven;
+                logBoxStyle = isOdd ? UnityDebugViewerWindowStyleUtility.oddLogBoxtyle : UnityDebugViewerWindowStyleUtility.evenLogBoxtyle;
             }
 
             GUI.DrawTexture(logBoxRect, logBoxStyle.normal.background);
@@ -516,15 +514,15 @@ namespace UnityDebugViewer
                 EditorGUI.LabelField(labelRect, labelGUIContent, UnityDebugViewerWindowStyleUtility.collapsedNumLabelStyle);
             }
 
-            /// process event
-            if (logBoxRect.Contains(Event.current.mousePosition))
-            {
-                EventType eventType = Event.current.GetTypeForControl(this.logBoxControlID);
+            EventType eventType = Event.current.GetTypeForControl(this.logBoxControlID);
 #if UNITY_5 || UNITY_5_2_OR_NEWER
-                if (eventType == EventType.MouseDown)
+            if (eventType == EventType.MouseDown)
 #else
-                if (eventType == EventType.mouseDown)
+            if (eventType == EventType.mouseDown)
 #endif
+            {
+                /// process event
+                if (logBoxRect.Contains(Event.current.mousePosition))
                 {
                     this.editorManager.activeEditor.selectedLogIndex = index;
 
@@ -535,40 +533,53 @@ namespace UnityDebugViewer
 
                     Event.current.Use();
                 }
+                
+            }
 #if UNITY_5 || UNITY_5_2_OR_NEWER
-                if (eventType == EventType.MouseUp && Event.current.button == 1)
+            else if (eventType == EventType.MouseUp)
 #else
-                if (eventType == EventType.mouseUp && Event.current.button == 1)
+            else if (eventType == EventType.mouseUp)
 #endif
+            {
+                if (logBoxRect.Contains(Event.current.mousePosition) && Event.current.button == 1)
                 {
                     ShowCopyMenu(log.info);
 
                     Event.current.Use();
                 }
+            }
 #if UNITY_5 || UNITY_5_2_OR_NEWER
-                if (eventType == EventType.KeyUp)
+            else if (eventType == EventType.KeyUp)
 #else
-                if (eventType == EventType.keyUp)
+            else if (eventType == EventType.keyUp)
 #endif
+            {
+                bool changeSelectedLog = false;
+                int selectedIndex = this.editorManager.activeEditor.selectedLogIndex;
+                if (Event.current.keyCode == KeyCode.UpArrow)
                 {
-                    bool changeSelectedLog = false;
-                    if(Event.current.keyCode == KeyCode.UpArrow)
+                    selectedIndex--;
+                    changeSelectedLog = true;
+                }
+                else if (Event.current.keyCode == KeyCode.DownArrow)
+                {
+                    selectedIndex++;
+                    changeSelectedLog = true;
+                }
+                else if (Event.current.keyCode == KeyCode.Space)
+                {
+                    if (0 <= selectedIndex && selectedIndex <= this.logList.Count - 1)
                     {
-                        this.editorManager.activeEditor.selectedLogIndex--;
                         changeSelectedLog = true;
                     }
-                    else if(Event.current.keyCode == KeyCode.DownArrow)
-                    {
-                        this.editorManager.activeEditor.selectedLogIndex++;
-                        changeSelectedLog = true;
-                    }
+                }
 
-                    this.editorManager.activeEditor.selectedLogIndex = Mathf.Clamp(this.editorManager.activeEditor.selectedLogIndex, 0, this.logList.Count - 1);
-                    if (changeSelectedLog)
-                    {
-                        MoveToSpecificLogBox(this.editorManager.activeEditor.selectedLogIndex);
-                        Event.current.Use();
-                    }
+                if (changeSelectedLog)
+                {
+                    this.editorManager.activeEditor.selectedLogIndex = Mathf.Clamp(selectedIndex, 0, this.logList.Count - 1);
+
+                    MoveToSpecificLogBox(this.editorManager.activeEditor.selectedLogIndex);
+                    Event.current.Use();
                 }
             }
         }
@@ -684,95 +695,94 @@ namespace UnityDebugViewer
             }
 
             string content = string.Format("\n{0}\n{1}", stack.fullStackMessage, stack.sourceContent);
-            stackBoxStyle.wordWrap = true;
-            stackBoxStyle.padding = new RectOffset(10, 0, 0, 0);
+            
             if (this.selectedStackIndex == index)
             {
-                stackBoxStyle.normal.background = UnityDebugViewerWindowStyleUtility.boxBgSelected;
+                stackBoxStyle = UnityDebugViewerWindowStyleUtility.selectedStackBoxStyle;
             }
             else
             {
-                stackBoxStyle.normal.background = isOdd ? UnityDebugViewerWindowStyleUtility.boxBgOdd : UnityDebugViewerWindowStyleUtility.boxBgEven;
+                stackBoxStyle = isOdd ? UnityDebugViewerWindowStyleUtility.oddStackBoxStyle : UnityDebugViewerWindowStyleUtility.evenStackBoxStyle;
             }
 
             GUILayout.Label(new GUIContent(content), stackBoxStyle, GUILayout.ExpandWidth(true));
             Rect stackBoxRect = GUILayoutUtility.GetLastRect();
 
-            EventType eventType = Event.current.GetTypeForControl(this.stackBoxControlID);
-            if(eventType == EventType.Repaint && stackRectList[index] == Rect.zero)
-            {
-                stackRectList[index] = stackBoxRect;
-            }
+//            EventType eventType = Event.current.GetTypeForControl(this.stackBoxControlID);
+//            if (eventType == EventType.Repaint && stackRectList[index] == Rect.zero)
+//            {
+//                stackRectList[index] = stackBoxRect;
+//            }
 
-            if (stackRectList[index].Contains(Event.current.mousePosition))
-            {
-#if UNITY_5 || UNITY_5_2_OR_NEWER
-                if (eventType == EventType.MouseDown)
-#else
-                if (eventType == EventType.mouseDown)
-#endif
-                {
-                    if (Event.current.button == 0 && Event.current.clickCount == 2)
-                    {
-                        UnityDebugViewerWindowUtility.JumpToSource(stack);
-                    }
+//            if (stackRectList[index].Contains(Event.current.mousePosition))
+//            {
+//#if UNITY_5 || UNITY_5_2_OR_NEWER
+//                if (eventType == EventType.MouseDown)
+//#else
+//                if (eventType == EventType.mouseDown)
+//#endif
+//                {
+//                    if (Event.current.button == 0 && Event.current.clickCount == 2)
+//                    {
+//                        UnityDebugViewerWindowUtility.JumpToSource(stack);
+//                    }
 
-                    this.selectedStackIndex = index;
+//                    this.selectedStackIndex = index;
 
-                    Event.current.Use();
-                }
-#if UNITY_5 || UNITY_5_2_OR_NEWER
-                if (eventType == EventType.MouseUp && Event.current.button == 1)
-#else
-                if (eventType == EventType.mouseUp && Event.current.button == 1)
-#endif
-                {
-                    ShowCopyMenu(stack.fullStackMessage);
+//                    Event.current.Use();
+//                }
+//#if UNITY_5 || UNITY_5_2_OR_NEWER
+//                if (eventType == EventType.MouseUp && Event.current.button == 1)
+//#else
+//                if (eventType == EventType.mouseUp && Event.current.button == 1)
+//#endif
+//                {
+//                    ShowCopyMenu(stack.fullStackMessage);
 
-                    Event.current.Use();
-                }
-#if UNITY_5 || UNITY_5_2_OR_NEWER
-                if (eventType == EventType.KeyUp)
-#else
-                if (eventType == EventType.keyUp)
-#endif
-                {
-                    bool changeSeletedStack = false;
+//                    Event.current.Use();
+//                }
+//#if UNITY_5 || UNITY_5_2_OR_NEWER
+//                if (eventType == EventType.KeyUp)
+//#else
+//                if (eventType == EventType.keyUp)
+//#endif
+//                {
+//                    bool changeSeletedStack = false;
 
-                    if (Event.current.keyCode == KeyCode.UpArrow)
-                    {
-                        this.selectedStackIndex --;
-                        if(this.selectedStackIndex < 0)
-                        {
-                            this.selectedStackIndex = 0;
-                            this.stackPanelScrollPos.y = 0;
-                        }
-                        changeSeletedStack = true;
-                    }
-                    else if (Event.current.keyCode == KeyCode.DownArrow)
-                    {
-                        this.selectedStackIndex++;
-                        if(this.selectedStackIndex > this.editorManager.activeEditor.selectedLog.stackList.Count - 1)
-                        {
-                            this.selectedStackIndex = this.editorManager.activeEditor.selectedLog.stackList.Count - 1;
-                        }
-                        changeSeletedStack = true;
-                    }
+//                    if (Event.current.keyCode == KeyCode.UpArrow)
+//                    {
+//                        this.selectedStackIndex --;
+//                        if(this.selectedStackIndex < 0)
+//                        {
+//                            this.selectedStackIndex = 0;
+//                            this.stackPanelScrollPos.y = 0;
+//                        }
+//                        changeSeletedStack = true;
+//                    }
+//                    else if (Event.current.keyCode == KeyCode.DownArrow)
+//                    {
+//                        this.selectedStackIndex++;
+//                        if(this.selectedStackIndex > this.editorManager.activeEditor.selectedLog.stackList.Count - 1)
+//                        {
+//                            this.selectedStackIndex = this.editorManager.activeEditor.selectedLog.stackList.Count - 1;
+//                        }
+//                        changeSeletedStack = true;
+//                    }
 
-                    if (changeSeletedStack)
-                    {
-                        float showRectTop = this.stackPanelScrollPos.y + this.lowerPanelRect.height;
-                        float showRectBottom = this.stackPanelScrollPos.y;
-                        float rectTop = stackRectList[this.selectedStackIndex].y + stackRectList[this.selectedStackIndex].height;
-                        float rectBottom = stackRectList[this.selectedStackIndex].y;
+//                    if (changeSeletedStack)
+//                    {
+//                        float showRectTop = this.stackPanelScrollPos.y + this.lowerPanelRect.height;
+//                        float showRectBottom = this.stackPanelScrollPos.y;
+//                        float rectTop = stackRectList[this.selectedStackIndex].y + stackRectList[this.selectedStackIndex].height;
+//                        float rectBottom = stackRectList[this.selectedStackIndex].y;
 
-                        UnityDebugViewerWindowUtility.MoveToSpecificRect(showRectTop, showRectBottom, rectTop, rectBottom, ref this.stackPanelScrollPos);
+//                        UnityDebugViewerWindowUtility.MoveToSpecificRect(showRectTop, showRectBottom, rectTop, rectBottom, ref this.stackPanelScrollPos);
 
-                        GUI.changed = true;
-                        Event.current.Use();
-                    }
-                }
-            }
+//                        GUI.changed = true;
+//                        Event.current.Use();
+//                    }
+//                }
+//            }
         }
 
         private void DrawResizer()

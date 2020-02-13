@@ -60,6 +60,66 @@ namespace UnityDebugViewer
             }
         }
 
+        private static Texture2D _errorIconSmallTexture;
+        public static Texture2D errorIconSmallTexture
+        {
+            get
+            {
+                if (_errorIconSmallTexture == null)
+                {
+                    //string name = EditorGUIUtility.isProSkin ? "CN EntryError" : "CN EntryErrorIconSmall";
+                    //if (_errorIconSmallTexture == null)
+                    //{
+                    //    _errorIconSmallTexture = skin.GetStyle(name);
+                    //}
+
+                    _errorIconSmallTexture = EditorGUIUtility.Load("icons/console.erroricon.sml.png") as Texture2D;
+                }
+
+                return _errorIconSmallTexture;
+            }
+        }
+
+        private static Texture _warningIconSmallTexture;
+        public static Texture warningIconSmallTexture
+        {
+            get
+            {
+                if (_warningIconSmallTexture == null)
+                {
+                    //string name = EditorGUIUtility.isProSkin ? "CN EntryWarn" : "CN EntryWarnIconSmall";
+                    //if (_warningIconSmallTexture == null)
+                    //{
+                    //    _warningIconSmallTexture = skin.GetStyle(name);
+                    //}
+                    _warningIconSmallTexture = EditorGUIUtility.Load("icons/console.warnicon.sml.png") as Texture2D;
+                }
+
+                return _warningIconSmallTexture;
+            }
+        }
+
+        private static Texture _infoIconSmallTexture;
+        public static Texture infoIconSmallTexture
+        {
+            get
+            {
+                if (_infoIconSmallTexture == null)
+                {
+                    //string name = EditorGUIUtility.isProSkin ? "CN EntryInfo" : "CN EntryInfoIconSmall";
+                    ////string name = "CN EntryInfoIconSmall";
+
+                    //if (_infoIconSmallTexture == null)
+                    //{
+                    //    _infoIconSmallTexture = skin.GetStyle(name);
+                    //}
+                    _infoIconSmallTexture = EditorGUIUtility.Load("icons/console.infoicon.sml.png") as Texture2D;
+                }
+
+                return _infoIconSmallTexture;
+            }
+        }
+
         private static GUIStyle _errorIconStyle;
         public static GUIStyle errorIconStyle
         {
@@ -75,24 +135,6 @@ namespace UnityDebugViewer
                 }
 
                 return _errorIconStyle;
-            }
-        }
-
-        private static GUIStyle _errorIconSmallStyle;
-        public static GUIStyle errorIconSmallStyle
-        {
-            get
-            {
-                if (_errorIconSmallStyle == null)
-                {
-                    string name = EditorGUIUtility.isProSkin ? "CN EntryError" : "CN EntryErrorIconSmall";
-                    if (_errorIconSmallStyle == null)
-                    {
-                        _errorIconSmallStyle = skin.GetStyle(name);
-                    }
-                }
-
-                return _errorIconSmallStyle;
             }
         }
 
@@ -115,24 +157,6 @@ namespace UnityDebugViewer
             }
         }
 
-        private static GUIStyle _warningIconSmallStyle;
-        public static GUIStyle warningIconSmallStyle
-        {
-            get
-            {
-                if (_warningIconSmallStyle == null)
-                {
-                    string name = EditorGUIUtility.isProSkin ? "CN EntryWarn" : "CN EntryWarnIconSmall";
-                    if (_warningIconSmallStyle == null)
-                    {
-                        _warningIconSmallStyle = skin.GetStyle(name);
-                    }
-                }
-
-                return _warningIconSmallStyle;
-            }
-        }
-
         private static GUIStyle _infoIconStyle;
         public static GUIStyle infoIconStyle
         {
@@ -148,26 +172,6 @@ namespace UnityDebugViewer
                 }
 
                 return _infoIconStyle;
-            }
-        }
-
-        private static GUIStyle _infoIconSmallStyle;
-        public static GUIStyle infoIconSmallStyle
-        {
-            get
-            {
-                if (_infoIconSmallStyle == null)
-                {
-                    string name = EditorGUIUtility.isProSkin ? "CN EntryInfo" : "CN EntryInfoIconSmall";
-                    //string name = "CN EntryInfoIconSmall";
-
-                    if (_infoIconSmallStyle == null)
-                    {
-                        _infoIconSmallStyle = skin.GetStyle(name);
-                    }
-                }
-
-                return _infoIconSmallStyle;
             }
         }
 
@@ -199,46 +203,214 @@ namespace UnityDebugViewer
             }
         }
 
-        private static Texture2D _bgLogBoxOdd;
-        public static Texture2D boxBgOdd
+        private static GUIStyle _oddLogBoxtyle;
+        public static GUIStyle oddLogBoxtyle
         {
             get
             {
-                if (_bgLogBoxOdd == null)
+                if (_oddLogBoxtyle == null)
                 {
-                    var style = skin.GetStyle("OL EntryBackOdd");
-                    _bgLogBoxOdd = style.normal.background;
+                    _oddLogBoxtyle = new GUIStyle(oddEntryStyle);
+                    _oddLogBoxtyle.wordWrap = true;
+                    _oddLogBoxtyle.clipping = TextClipping.Clip;
+                    _oddLogBoxtyle.padding = new RectOffset(35, 10, 5, 5);
                 }
 
-                return _bgLogBoxOdd;
+                return _oddLogBoxtyle;
             }
         }
 
-        private static Texture2D _boxLogBgEven;
-        public static Texture2D boxBgEven
+
+        private static GUIStyle _evenLogBoxtyle;
+        public static GUIStyle evenLogBoxtyle
         {
             get
             {
-                if (_boxLogBgEven == null)
+                if (_evenLogBoxtyle == null)
                 {
-                    _boxLogBgEven = skin.GetStyle("OL EntryBackEven").normal.background;
+                    _evenLogBoxtyle = new GUIStyle(evenEntryStyle);
+                    _evenLogBoxtyle.wordWrap = true;
+                    _evenLogBoxtyle.clipping = TextClipping.Clip;
+                    _evenLogBoxtyle.padding = new RectOffset(35, 10, 5, 5);
                 }
 
-                return _boxLogBgEven;
+                return _evenLogBoxtyle;
             }
         }
 
-        private static Texture2D _boxLogBgSelected;
-        public static Texture2D boxBgSelected
+        private static GUIStyle _selectedLogBoxStyle;
+        public static GUIStyle selectedLogBoxStyle
         {
             get
             {
-                if (_boxLogBgSelected == null)
+                if (_selectedLogBoxStyle == null)
                 {
-                    _boxLogBgSelected = skin.GetStyle("OL SelectedRow").normal.background;
+                    _selectedLogBoxStyle = new GUIStyle(selectedEntryStyle);
+                    _selectedLogBoxStyle.wordWrap = true;
+                    _selectedLogBoxStyle.clipping = TextClipping.Clip;
+                    _selectedLogBoxStyle.padding = new RectOffset(35, 10, 5, 5);
                 }
 
-                return _boxLogBgSelected;
+                return _selectedLogBoxStyle;
+            }
+        }
+
+
+        private static GUIStyle _oddStackBoxStyle;
+        public static GUIStyle oddStackBoxStyle
+        {
+            get
+            {
+                if (_oddStackBoxStyle == null)
+                {
+                    _oddStackBoxStyle = new GUIStyle(oddEntryStyle);
+                    _oddStackBoxStyle.alignment = TextAnchor.MiddleLeft;
+                    _oddStackBoxStyle.wordWrap = true;
+                    _oddStackBoxStyle.padding = new RectOffset(10, 0, 0, 0);
+                    _oddStackBoxStyle.richText = true;
+                }
+
+                return _oddStackBoxStyle;
+            }
+        }
+
+
+        private static GUIStyle _evenStackBoxStyle;
+        public static GUIStyle evenStackBoxStyle
+        {
+            get
+            {
+                if (_evenStackBoxStyle == null)
+                {
+                    _evenStackBoxStyle = new GUIStyle(evenEntryStyle);
+                    _evenStackBoxStyle.alignment = TextAnchor.MiddleLeft;
+                    _evenStackBoxStyle.wordWrap = true;
+                    _evenStackBoxStyle.padding = new RectOffset(10, 0, 0, 0);
+                    _evenStackBoxStyle.richText = true;
+                }
+
+                return _evenStackBoxStyle;
+            }
+        }
+
+        private static GUIStyle _selectedStackBoxStyle;
+        public static GUIStyle selectedStackBoxStyle
+        {
+            get
+            {
+                if (_selectedStackBoxStyle == null)
+                {
+                    _selectedStackBoxStyle = new GUIStyle(selectedEntryStyle);
+                    _selectedStackBoxStyle.alignment = TextAnchor.MiddleLeft;
+                    _selectedStackBoxStyle.wordWrap = true;
+                    _selectedStackBoxStyle.padding = new RectOffset(10, 0, 0, 0);
+                    _selectedStackBoxStyle.richText = true;
+                }
+
+                return _selectedStackBoxStyle;
+            }
+        }
+
+        private static GUIStyle _oddTreeRowStyle;
+        public static GUIStyle oddTreeRowStyle
+        {
+            get
+            {
+                if (_oddTreeRowStyle == null)
+                {
+                    _oddTreeRowStyle = new GUIStyle(oddEntryStyle);
+                    _oddTreeRowStyle.alignment = TextAnchor.MiddleLeft;
+                }
+
+                return _oddTreeRowStyle;
+            }
+        }
+
+
+        private static GUIStyle _evenTreeRowStyle;
+        public static GUIStyle evenTreeRowStyle
+        {
+            get
+            {
+                if (_evenTreeRowStyle == null)
+                {
+                    _evenTreeRowStyle = new GUIStyle(evenEntryStyle);
+                    _evenTreeRowStyle.alignment = TextAnchor.MiddleLeft;
+                }
+
+                return _evenTreeRowStyle;
+            }
+        }
+
+        private static GUIStyle _selectedTreeRowStyle;
+        public static GUIStyle selectedTreeRowStyle
+        {
+            get
+            {
+                if (_selectedTreeRowStyle == null)
+                {
+                    _selectedTreeRowStyle = new GUIStyle(selectedEntryStyle);
+                    _selectedTreeRowStyle.alignment = TextAnchor.MiddleLeft;
+                }
+
+                return _selectedTreeRowStyle;
+            }
+        }
+
+
+        private static GUIStyle _oddEntryStyle;
+        private static GUIStyle oddEntryStyle
+        {
+            get
+            {
+                if (_oddEntryStyle == null)
+                {
+                    _oddEntryStyle = skin.GetStyle("CN EntryBackOdd");
+                    if(_oddEntryStyle == null)
+                    {
+                        _oddEntryStyle = new GUIStyle();
+                    }
+                }
+
+                return _oddEntryStyle;
+            }
+        }
+
+
+        private static GUIStyle _evenEntryStyle;
+        private static GUIStyle evenEntryStyle
+        {
+            get
+            {
+                if (_evenEntryStyle == null)
+                {
+                    _evenEntryStyle = skin.GetStyle("CN EntryBackEven");
+                    if (_evenEntryStyle == null)
+                    {
+                        _evenEntryStyle = new GUIStyle();
+                    }
+                }
+
+                return _evenEntryStyle;
+            }
+        }
+
+        private static GUIStyle _selectedEntryStyle;
+        private static GUIStyle selectedEntryStyle
+        {
+            get
+            {
+                if (_selectedEntryStyle == null)
+                {
+                    string name = EditorGUIUtility.isProSkin ? "LODSliderRangeSelected" : "OL SelectedRow";
+                    _selectedEntryStyle = skin.GetStyle(name);
+                    if (_selectedEntryStyle == null)
+                    {
+                        _selectedEntryStyle = new GUIStyle();
+                    }
+                }
+
+                return _selectedEntryStyle;
             }
         }
 

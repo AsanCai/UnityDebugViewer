@@ -17,9 +17,9 @@ namespace UnityDebugViewer
                     _columnTitleGUIContentArray = new GUIContent[]
                     {
                         new GUIContent("Total Count"),
-                        new GUIContent("Log Count", UnityDebugViewerWindowStyleUtility.infoIconStyle.normal.background),
-                        new GUIContent("Waring Count", UnityDebugViewerWindowStyleUtility.warningIconStyle.normal.background),
-                        new GUIContent("Error Count", UnityDebugViewerWindowStyleUtility.errorIconStyle.normal.background)
+                        new GUIContent("Log Count", UnityDebugViewerWindowStyleUtility.infoIconSmallTexture),
+                        new GUIContent("Waring Count", UnityDebugViewerWindowStyleUtility.warningIconSmallTexture),
+                        new GUIContent("Error Count", UnityDebugViewerWindowStyleUtility.errorIconSmallTexture)
                     };
                 }
 
@@ -27,7 +27,9 @@ namespace UnityDebugViewer
             }
         }
 
-        protected const int indentScaler = 14;
+        private const float COLUMNS_RATE = 0.4f;
+        protected const int MAX_COLUMN_WIDTH = 40;
+        protected const int INDENT_WIDTH = 14;
 
         [SerializeField]
         private readonly UnityDebugViewerAnalysisDataTreeItem _root;
@@ -44,6 +46,8 @@ namespace UnityDebugViewer
         private Vector2 _scrollPos;
         private int _controlID;
 
+        private GUIStyle _rowStyle;
+
         public UnityDebugViewerAnalysisDataTreeView(UnityDebugViewerAnalysisDataTreeItem root)
         {
             _root = root;
@@ -55,21 +59,24 @@ namespace UnityDebugViewer
         {
             var titleStyle = GUI.skin.GetStyle("Wizard Box");
             titleStyle.alignment = TextAnchor.MiddleLeft;
-            titleStyle.padding = new RectOffset(indentScaler, 0, 0, 0);
+            titleStyle.padding = new RectOffset(INDENT_WIDTH, 0, 0, 0);
+
+            Rect columnRect = new Rect(titleRect.x, titleRect.y, _controlRect.width, titleRect.height);
 
             var stackGUIContent = new GUIContent("Stack Message");
             EditorGUI.LabelField(titleRect, stackGUIContent, titleStyle);
 
-            DrawColumn(columnTitleGUIContentArray, titleStyle, titleRect);
+            DrawColumn(columnTitleGUIContentArray, titleStyle, columnRect);
         }
 
         private void DrawColumn(GUIContent[] columnGUIContentArray, GUIStyle columnStyle, Rect rowRect)
         {
+            columnStyle = new GUIStyle(columnStyle);
             columnStyle.padding = new RectOffset(0, 0, 0, 0);
             columnStyle.alignment = TextAnchor.MiddleCenter;
 
-            var columnWidth = Mathf.Max(50, rowRect.width * 0.5f / columnGUIContentArray.Length);
-            var columnBegin = Mathf.Max(rowRect.width * 0.5f, rowRect.width - columnWidth * columnGUIContentArray.Length);
+            var columnWidth = Mathf.Max(MAX_COLUMN_WIDTH, rowRect.width * COLUMNS_RATE / columnGUIContentArray.Length);
+            var columnBegin = Mathf.Max(rowRect.width * (1 - COLUMNS_RATE), rowRect.width - columnWidth * columnGUIContentArray.Length);
 
             GUIContent columnGUIContent;
             Rect columnRect;
@@ -98,7 +105,7 @@ namespace UnityDebugViewer
             _root.Traverse(OnGetLayoutHeight);
 
             _controlRect = EditorGUILayout.GetControlRect(false, _height);
-            _controlID = GUIUtility.GetControlID(FocusType.Passive, _controlRect);
+            _controlID = GUIUtility.GetControlID(FocusType.Keyboard, _controlRect) + 1;
             _root.Traverse(OnDrawRow);
 
             scrollPos = _scrollPos;
@@ -145,14 +152,14 @@ namespace UnityDebugViewer
 
             OnDrawTreeNode(rowRect, node, _selectedNode == node, false);
 
-            if (rowRect.Contains(Event.current.mousePosition))
-            {
-                EventType eventType = Event.current.GetTypeForControl(_controlID);
+            EventType eventType = Event.current.GetTypeForControl(_controlID);
 #if UNITY_5 || UNITY_5_2_OR_NEWER
-                if (eventType == EventType.MouseUp)
+            if (eventType == EventType.MouseDown)
 #else
-                if (eventType == EventType.mouseUp)
+            if (eventType == EventType.mouseDown)
 #endif
+            {
+                if (rowRect.Contains(Event.current.mousePosition))
                 {
                     _selectedNode = node;
                     _selectedRow = node.Row;
@@ -160,22 +167,25 @@ namespace UnityDebugViewer
                     GUI.changed = true;
                     Event.current.Use();
                 }
+            }
 #if UNITY_5 || UNITY_5_2_OR_NEWER
-                if (eventType == EventType.KeyUp)
+            else if (eventType == EventType.KeyUp)
 #else
-                if (eventType == EventType.keyUp)
+            else if (eventType == EventType.keyUp)
 #endif
+            {
+                if(_controlID == GUIUtility.keyboardControl)
                 {
                     if (Event.current.keyCode == KeyCode.UpArrow)
                     {
                         _selectedRow = _selectedNode.Row - 1;
-                        if(_selectedRow < 0)
+                        if (_selectedRow < 0)
                         {
                             _selectedRow = 0;
                         }
                         _changeSelectedRow = true;
                     }
-                    else if(Event.current.keyCode == KeyCode.DownArrow)
+                    else if (Event.current.keyCode == KeyCode.DownArrow)
                     {
                         _selectedRow = _selectedNode.Row + 1;
                         int maxRow = (int)(_controlRect.height / rowHeight) - 1;
@@ -206,20 +216,18 @@ namespace UnityDebugViewer
                 return;
             }
 
-            var rowStyle = new GUIStyle();
-            rowStyle.alignment = TextAnchor.MiddleLeft;
             if (selected)
             {
-                rowStyle.normal.background = UnityDebugViewerWindowStyleUtility.boxBgSelected;
+                _rowStyle = UnityDebugViewerWindowStyleUtility.selectedTreeRowStyle;
             }
             else
             {
-                rowStyle.normal.background = node.Row % 2 == 0 ? UnityDebugViewerWindowStyleUtility.boxBgOdd : UnityDebugViewerWindowStyleUtility.boxBgEven;
+                _rowStyle = node.Row % 2 == 0 ? UnityDebugViewerWindowStyleUtility.oddTreeRowStyle : UnityDebugViewerWindowStyleUtility.evenTreeRowStyle;
             }
 
-            EditorGUI.LabelField(rowRect, GUIContent.none, rowStyle);
+            GUI.DrawTexture(rowRect, _rowStyle.normal.background);
 
-            float rowIndent = indentScaler * node.Level;
+            float rowIndent = INDENT_WIDTH * node.Level;
             Rect indentRect = new Rect(rowIndent + rowRect.x, rowRect.y, rowRect.width, rowRect.height);
 
             if (!node.IsLeaf)
@@ -229,13 +237,12 @@ namespace UnityDebugViewer
                 var foldOutRect = new Rect(
                     indentRect.x - 12,
                     indentRect.y + rowRect.height * 0.5f - foldOutSize.y * 0.5f,
-                    12,
-                    indentRect.height);
+                    12, indentRect.height);
                 node.Data.isExpanded = EditorGUI.Foldout(foldOutRect, node.Data.isExpanded, GUIContent.none, EditorStyles.foldout);
             }
 
             GUIContent labelContent = new GUIContent(node.Data.ToString());
-            EditorGUI.LabelField(indentRect, labelContent, rowStyle);
+            EditorGUI.LabelField(indentRect, labelContent, _rowStyle);
 
             var columnArray = node.Data.getColumnArray();
             if (columnArray == null)
@@ -248,7 +255,7 @@ namespace UnityDebugViewer
             {
                 columnGUIContentArray[i] = new GUIContent(columnArray[i]);
             }
-            DrawColumn(columnGUIContentArray, rowStyle, rowRect);
+            DrawColumn(columnGUIContentArray, _rowStyle, rowRect);
         }
     }
 }

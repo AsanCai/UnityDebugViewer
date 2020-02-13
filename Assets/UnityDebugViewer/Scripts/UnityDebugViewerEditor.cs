@@ -308,8 +308,9 @@ namespace UnityDebugViewer
         {
             if (forceUpdate || this.logFilter.Equals(filter) == false)
             {
+                var selectedLog = this.selectedLog;
                 this.filteredLogList.Clear();
-
+                this.selectedLogIndex = -1;
                 var logList = filter.collapse ? this.collapsedLogList : this.logList;
                 for(int i = 0; i < logList.Count; i++)
                 {
@@ -322,6 +323,21 @@ namespace UnityDebugViewer
                     if (filter.ShouldDisplay(log))
                     {
                         this.filteredLogList.Add(log);
+
+                        if (filter.collapse)
+                        {
+                            if (log.Equals(selectedLog))
+                            {
+                                this.selectedLogIndex = this.filteredLogList.Count - 1;
+                            }
+                        }
+                        else
+                        {
+                            if (log == selectedLog)
+                            {
+                                this.selectedLogIndex = this.filteredLogList.Count - 1;
+                            }
+                        }
                     }
                 }
 
