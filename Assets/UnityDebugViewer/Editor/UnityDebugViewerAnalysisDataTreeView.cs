@@ -153,7 +153,7 @@ namespace UnityDebugViewer
             OnDrawTreeNode(rowRect, node, _selectedNode == node, false);
 
             EventType eventType = Event.current.GetTypeForControl(_controlID);
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
             if (eventType == EventType.MouseDown)
 #else
             if (eventType == EventType.mouseDown)
@@ -170,7 +170,7 @@ namespace UnityDebugViewer
                     Event.current.Use();
                 }
             }
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
             else if (eventType == EventType.KeyUp)
 #else
             else if (eventType == EventType.keyUp)

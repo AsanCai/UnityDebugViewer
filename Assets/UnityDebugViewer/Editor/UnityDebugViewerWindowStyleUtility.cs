@@ -473,11 +473,9 @@ namespace UnityDebugViewer
             {
                 if (_inactiveEntryStyle == null)
                 {
-                    string name = EditorGUIUtility.isProSkin ? "LODBlackBox" : "OL SelectedRow";
-                    _inactiveEntryStyle = skin.GetStyle(name);
                     if (_inactiveEntryStyle == null)
                     {
-                        _inactiveEntryStyle = new GUIStyle();
+                        _inactiveEntryStyle = skin.GetStyle("LODBlackBox");
                     }
                 }
 

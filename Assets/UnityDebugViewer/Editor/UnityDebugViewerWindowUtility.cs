@@ -32,7 +32,7 @@ namespace UnityDebugViewer
 #if UNITY_5 || UNITY_5_2_OR_NEWER
                 if (eventType == EventType.KeyUp && (Event.current.modifiers == EventModifiers.Control || Event.current.modifiers == EventModifiers.Command))
 #else
-                if (eventType == EventType.keyUp && (Event.current.modifiers == EventModifiers.Control || Event.current.modifiers == EventModifiers.Command))
+                if (eventType == EventType.KeyUp && (Event.current.modifiers == EventModifiers.Control || Event.current.modifiers == EventModifiers.Command))
 #endif
                 {
                     if (Event.current.keyCode == KeyCode.C)

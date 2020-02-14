@@ -14,7 +14,7 @@ public class TestTcp : MonoBehaviour
         Application.logMessageReceivedThreaded += CaptureLogThread;
     }
 
-    private void OnApplicationQuit()
+    private void OnDestroy()
     {
         Application.logMessageReceivedThreaded -= CaptureLogThread;
         transfer.Clear();

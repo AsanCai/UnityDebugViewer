@@ -97,7 +97,7 @@ namespace UnityDebugViewer
         private static void OpenWindow()
         {
             UnityDebugViewerWindow window = GetWindow<UnityDebugViewerWindow>();
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
             window.titleContent = new GUIContent("Debug Viewer");
 #else
             window.title = "Debug Viewer";
@@ -501,7 +501,7 @@ namespace UnityDebugViewer
             }
 
             EventType eventType = Event.current.GetTypeForControl(this.logBoxControlID);
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
             if (eventType == EventType.MouseDown)
 #else
             if (eventType == EventType.mouseDown)
@@ -528,7 +528,7 @@ namespace UnityDebugViewer
                     Event.current.Use();
                 }
             }
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
             else if (eventType == EventType.MouseUp)
 #else
             else if (eventType == EventType.mouseUp)
@@ -542,7 +542,7 @@ namespace UnityDebugViewer
                     Event.current.Use();
                 }
             }
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
             else if (eventType == EventType.KeyUp)
 #else
             else if (eventType == EventType.keyUp)
@@ -562,13 +562,6 @@ namespace UnityDebugViewer
                         selectedIndex++;
                         changeSelectedLog = true;
                     }
-                    //else if (Event.current.keyCode == KeyCode.Space)
-                    //{
-                    //    if (0 <= selectedIndex && selectedIndex <= this.logList.Count - 1)
-                    //    {
-                    //        changeSelectedLog = true;
-                    //    }
-                    //}
 
                     if (changeSelectedLog)
                     {
@@ -695,7 +688,7 @@ namespace UnityDebugViewer
                         }
 
                         EventType eventType = Event.current.GetTypeForControl(this.stackBoxControlID);
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
                         if (eventType == EventType.KeyUp)
 #else
                         if (eventType == EventType.keyUp)
@@ -776,7 +769,7 @@ namespace UnityDebugViewer
             if (stackBoxRect.Contains(Event.current.mousePosition))
             {
                 EventType eventType = Event.current.GetTypeForControl(this.stackBoxControlID);
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
                 if (eventType == EventType.MouseDown)
 #else
                 if (eventType == EventType.mouseDown)
@@ -792,7 +785,7 @@ namespace UnityDebugViewer
                     UnityDebugViewerWindowUtility.activeControlID = this.stackBoxControlID;
                     Event.current.Use();
                 }
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
                 if (eventType == EventType.MouseUp && Event.current.button == 1)
 #else
                 if (eventType == EventType.mouseUp && Event.current.button == 1)
@@ -818,7 +811,7 @@ namespace UnityDebugViewer
 
             this.resizerControlID = GUIUtility.GetControlID(FocusType.Passive, resizerRect);
             EventType eventType = Event.current.GetTypeForControl(this.resizerControlID);
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
             if (eventType == EventType.MouseDown)
 #else
             if (eventType == EventType.mouseDown)
@@ -830,7 +823,7 @@ namespace UnityDebugViewer
                     Event.current.Use();
                 }
             }
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
             if (eventType == EventType.MouseDrag)
 #else
             if (eventType == EventType.mouseDrag)
@@ -845,7 +838,7 @@ namespace UnityDebugViewer
                     Event.current.Use();
                 }
             }
-#if UNITY_5 || UNITY_5_2_OR_NEWER
+#if UNITY_5 || UNITY_5_3_OR_NEWER
             if (eventType == EventType.Ignore || eventType == EventType.MouseUp)
 #else
             if (eventType == EventType.ignore || eventType == EventType.mouseUp)
