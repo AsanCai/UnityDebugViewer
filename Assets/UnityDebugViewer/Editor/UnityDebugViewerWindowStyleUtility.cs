@@ -255,6 +255,22 @@ namespace UnityDebugViewer
             }
         }
 
+        private static GUIStyle _inactiveLogBoxStyle;
+        public static GUIStyle inactiveLogBoxStyle
+        {
+            get
+            {
+                if (_inactiveLogBoxStyle == null)
+                {
+                    _inactiveLogBoxStyle = new GUIStyle(inactiveEntryStyle);
+                    _inactiveLogBoxStyle.wordWrap = true;
+                    _inactiveLogBoxStyle.clipping = TextClipping.Clip;
+                    _inactiveLogBoxStyle.padding = new RectOffset(35, 10, 5, 5);
+                }
+
+                return _inactiveLogBoxStyle;
+            }
+        }
 
         private static GUIStyle _oddStackBoxStyle;
         public static GUIStyle oddStackBoxStyle
@@ -311,6 +327,24 @@ namespace UnityDebugViewer
             }
         }
 
+        private static GUIStyle _inactiveStackBoxStyle;
+        public static GUIStyle inactiveStackBoxStyle
+        {
+            get
+            {
+                if (_inactiveStackBoxStyle == null)
+                {
+                    _inactiveStackBoxStyle = new GUIStyle(inactiveEntryStyle);
+                    _inactiveStackBoxStyle.alignment = TextAnchor.MiddleLeft;
+                    _inactiveStackBoxStyle.wordWrap = true;
+                    _inactiveStackBoxStyle.padding = new RectOffset(10, 0, 0, 0);
+                    _inactiveStackBoxStyle.richText = true;
+                }
+
+                return _inactiveStackBoxStyle;
+            }
+        }
+
         private static GUIStyle _oddTreeRowStyle;
         public static GUIStyle oddTreeRowStyle
         {
@@ -320,6 +354,7 @@ namespace UnityDebugViewer
                 {
                     _oddTreeRowStyle = new GUIStyle(oddEntryStyle);
                     _oddTreeRowStyle.alignment = TextAnchor.MiddleLeft;
+                    _oddTreeRowStyle.padding = new RectOffset(0, 0, 0, 0);
                 }
 
                 return _oddTreeRowStyle;
@@ -336,6 +371,7 @@ namespace UnityDebugViewer
                 {
                     _evenTreeRowStyle = new GUIStyle(evenEntryStyle);
                     _evenTreeRowStyle.alignment = TextAnchor.MiddleLeft;
+                    _evenTreeRowStyle.padding = new RectOffset(0, 0, 0, 0);
                 }
 
                 return _evenTreeRowStyle;
@@ -351,12 +387,28 @@ namespace UnityDebugViewer
                 {
                     _selectedTreeRowStyle = new GUIStyle(selectedEntryStyle);
                     _selectedTreeRowStyle.alignment = TextAnchor.MiddleLeft;
+                    _selectedTreeRowStyle.padding = new RectOffset(0, 0, 0, 0);
                 }
 
                 return _selectedTreeRowStyle;
             }
         }
 
+        private static GUIStyle _inactiveTreeRowStyle;
+        public static GUIStyle inactiveTreeRowStyle
+        {
+            get
+            {
+                if (_inactiveTreeRowStyle == null)
+                {
+                    _inactiveTreeRowStyle = new GUIStyle(inactiveEntryStyle);
+                    _inactiveTreeRowStyle.alignment = TextAnchor.MiddleLeft;
+                    _inactiveTreeRowStyle.padding = new RectOffset(0, 0, 0, 0);
+                }
+
+                return _inactiveTreeRowStyle;
+            }
+        }
 
         private static GUIStyle _oddEntryStyle;
         private static GUIStyle oddEntryStyle
@@ -411,6 +463,25 @@ namespace UnityDebugViewer
                 }
 
                 return _selectedEntryStyle;
+            }
+        }
+
+        private static GUIStyle _inactiveEntryStyle;
+        private static GUIStyle inactiveEntryStyle
+        {
+            get
+            {
+                if (_inactiveEntryStyle == null)
+                {
+                    string name = EditorGUIUtility.isProSkin ? "LODBlackBox" : "OL SelectedRow";
+                    _inactiveEntryStyle = skin.GetStyle(name);
+                    if (_inactiveEntryStyle == null)
+                    {
+                        _inactiveEntryStyle = new GUIStyle();
+                    }
+                }
+
+                return _inactiveEntryStyle;
             }
         }
 

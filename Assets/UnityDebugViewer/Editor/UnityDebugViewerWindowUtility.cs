@@ -9,6 +9,8 @@ namespace UnityDebugViewer
 {
     public static class UnityDebugViewerWindowUtility 
     {
+        public static int activeControlID = 0;
+
         public static string CopyPasteTextField(string value, GUIStyle style, params GUILayoutOption[] options)
         {
             int textFieldID = GUIUtility.GetControlID("TextField".GetHashCode(), FocusType.Keyboard) + 1;

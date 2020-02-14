@@ -165,6 +165,8 @@ namespace UnityDebugViewer
                     _selectedRow = node.Row;
 
                     GUI.changed = true;
+
+                    UnityDebugViewerWindowUtility.activeControlID = _controlID;
                     Event.current.Use();
                 }
             }
@@ -174,7 +176,7 @@ namespace UnityDebugViewer
             else if (eventType == EventType.keyUp)
 #endif
             {
-                if(_controlID == GUIUtility.keyboardControl)
+                if(_controlID == UnityDebugViewerWindowUtility.activeControlID)
                 {
                     if (Event.current.keyCode == KeyCode.UpArrow)
                     {
@@ -218,7 +220,7 @@ namespace UnityDebugViewer
 
             if (selected)
             {
-                _rowStyle = UnityDebugViewerWindowStyleUtility.selectedTreeRowStyle;
+                _rowStyle = _controlID == UnityDebugViewerWindowUtility.activeControlID ? UnityDebugViewerWindowStyleUtility.selectedTreeRowStyle : UnityDebugViewerWindowStyleUtility.inactiveTreeRowStyle;
             }
             else
             {
@@ -233,7 +235,6 @@ namespace UnityDebugViewer
             if (!node.IsLeaf)
             {
                 var foldOutSize = EditorStyles.foldout.CalcSize(GUIContent.none);
-
                 var foldOutRect = new Rect(
                     indentRect.x - 12,
                     indentRect.y + rowRect.height * 0.5f - foldOutSize.y * 0.5f,

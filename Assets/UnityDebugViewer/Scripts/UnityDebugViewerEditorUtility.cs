@@ -50,7 +50,7 @@ namespace UnityDebugViewer
                 string str = ReplaceTabWithSpace(lineArray[index]) + "\n";
                 if(index == fileLineNumber)
                 {
-                    str = string.Format("<color=#ff0000ff>{0}</color>", str);
+                    str = string.Format("<color=#cc0000ff>{0}</color>", str);
                 }
 
                 souceContent += str;
