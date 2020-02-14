@@ -67,12 +67,6 @@ namespace UnityDebugViewer
             {
                 if (_errorIconSmallTexture == null)
                 {
-                    //string name = EditorGUIUtility.isProSkin ? "CN EntryError" : "CN EntryErrorIconSmall";
-                    //if (_errorIconSmallTexture == null)
-                    //{
-                    //    _errorIconSmallTexture = skin.GetStyle(name);
-                    //}
-
                     _errorIconSmallTexture = EditorGUIUtility.Load("icons/console.erroricon.sml.png") as Texture2D;
                 }
 
@@ -87,11 +81,6 @@ namespace UnityDebugViewer
             {
                 if (_warningIconSmallTexture == null)
                 {
-                    //string name = EditorGUIUtility.isProSkin ? "CN EntryWarn" : "CN EntryWarnIconSmall";
-                    //if (_warningIconSmallTexture == null)
-                    //{
-                    //    _warningIconSmallTexture = skin.GetStyle(name);
-                    //}
                     _warningIconSmallTexture = EditorGUIUtility.Load("icons/console.warnicon.sml.png") as Texture2D;
                 }
 
@@ -106,13 +95,6 @@ namespace UnityDebugViewer
             {
                 if (_infoIconSmallTexture == null)
                 {
-                    //string name = EditorGUIUtility.isProSkin ? "CN EntryInfo" : "CN EntryInfoIconSmall";
-                    ////string name = "CN EntryInfoIconSmall";
-
-                    //if (_infoIconSmallTexture == null)
-                    //{
-                    //    _infoIconSmallTexture = skin.GetStyle(name);
-                    //}
                     _infoIconSmallTexture = EditorGUIUtility.Load("icons/console.infoicon.sml.png") as Texture2D;
                 }
 
@@ -454,8 +436,7 @@ namespace UnityDebugViewer
             {
                 if (_selectedEntryStyle == null)
                 {
-                    string name = EditorGUIUtility.isProSkin ? "LODSliderRangeSelected" : "OL SelectedRow";
-                    _selectedEntryStyle = skin.GetStyle(name);
+                    _selectedEntryStyle = skin.GetStyle("LODSliderRangeSelected");
                     if (_selectedEntryStyle == null)
                     {
                         _selectedEntryStyle = new GUIStyle();
