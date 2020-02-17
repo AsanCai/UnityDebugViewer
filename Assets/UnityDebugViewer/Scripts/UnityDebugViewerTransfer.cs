@@ -42,7 +42,7 @@ namespace UnityDebugViewer
                 {
                     receiveLength = serverSocket.Receive(receiveBuffer);
                 }
-                catch(Exception e)
+                catch
                 {
                     if(disconnectToServerEvent != null)
                     {

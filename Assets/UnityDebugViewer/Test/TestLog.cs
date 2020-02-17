@@ -16,6 +16,7 @@ public class TestLog : MonoBehaviour
         }
     }
 
+
     void Update()
     {
         GenerateLog(Time.deltaTime);

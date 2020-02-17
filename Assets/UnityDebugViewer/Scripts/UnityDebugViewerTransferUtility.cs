@@ -77,10 +77,6 @@ namespace UnityDebugViewer
                 return default(T);
             }
 
-            byte[] infoBytes = new byte[512];
-            Array.Copy(bytes, 4, infoBytes, 0, 512);
-            string info = Encoding.UTF8.GetString(infoBytes);
-
             IntPtr structPtr = Marshal.AllocHGlobal(size);
             Marshal.Copy(bytes, 0, structPtr, size);
             object obj = Marshal.PtrToStructure(structPtr, type);
