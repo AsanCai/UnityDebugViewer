@@ -1,36 +1,35 @@
-﻿using System.Text;
-using System.Net;
-using System.Net.Sockets;
-using UnityEngine;
-using UnityDebugViewer;
+﻿using UnityEngine;
 
-public class TestLog : MonoBehaviour
+namespace UnityDebugViewer
 {
-    string info = string.Empty;
-    float timer = 0f;
-    private void Awake()
+    public class TestLog : MonoBehaviour
     {
-        for (int i = 0; i < 5000; i++)
+        string info = string.Empty;
+        float timer = 0f;
+        private void Awake()
         {
-            Debug.LogFormat("pass {0}s;", i);
+            for (int i = 0; i < 5000; i++)
+            {
+                Debug.LogFormat("pass {0}s;", i);
+            }
         }
-    }
 
 
-    void Update()
-    {
-        GenerateLog(Time.deltaTime);
-    }
-
-    void GenerateLog(float deltaTime)
-    {
-        timer += deltaTime;
-        if (timer >= 1)
+        void Update()
         {
-            UnityDebugViewerLogger.LogWarning("pass 1s;");
-            Debug.LogWarningFormat("pass {0}s;", 1);
+            GenerateLog(Time.deltaTime);
+        }
 
-            timer = 0f;
+        void GenerateLog(float deltaTime)
+        {
+            timer += deltaTime;
+            if (timer >= 1)
+            {
+                UnityDebugViewerLogger.LogWarning("pass 1s;");
+                Debug.LogWarningFormat("pass {0}s;", 1);
+
+                timer = 0f;
+            }
         }
     }
 }

@@ -1,38 +1,43 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityDebugViewer;
+﻿using UnityEngine;
 
-public class TestTcp : MonoBehaviour
+namespace UnityDebugViewer
 {
-    private UnityDebugViewerTransfer transfer;
-    private void Awake()
+    public class TestTcp : MonoBehaviour
     {
-        transfer = new UnityDebugViewerTransfer();
-        transfer.CreateServerSocket(50000);
-
-        Application.logMessageReceivedThreaded += CaptureLogThread;
-    }
-
-    private void OnDestroy()
-    {
-        Application.logMessageReceivedThreaded -= CaptureLogThread;
-        transfer.Clear();
-    }
-
-    private void CaptureLogThread(string info, string stacktrace, UnityEngine.LogType type)
-    {
-        if (transfer == null)
+        private UnityDebugViewerTransfer transfer;
+        private void Awake()
         {
-            return;
+            /// 创建一个tcp传输实例
+            transfer = new UnityDebugViewerTransfer();
+            /// 创建一个tcp server socket并侦听50000端口
+            transfer.CreateServerSocket(50000);
+
+            /// 开始收集log信息
+            Application.logMessageReceivedThreaded += CaptureLogThread;
+
+            DontDestroyOnLoad(this.gameObject);
         }
-        lock (transfer)
-        {
-            /// 连接成功则发送数据
-            var logData = new TransferLogData(info, stacktrace, type);
 
-            byte[] sendData = UnityDebugViewerTransferUtility.StructToBytes(logData);
-            transfer.SendData(sendData);
+        private void OnDestroy()
+        {
+            Application.logMessageReceivedThreaded -= CaptureLogThread;
+            transfer.Clear();
+        }
+
+        private void CaptureLogThread(string info, string stacktrace, UnityEngine.LogType type)
+        {
+            if (transfer == null)
+            {
+                return;
+            }
+            lock (transfer)
+            {
+                /// 将收集到的log数据序列化成byte[]
+                /// 并转发至连接到指定端口的tcp client socket
+                var logData = new TransferLogData(info, stacktrace, type);
+                byte[] sendData = UnityDebugViewerTransferUtility.StructToBytes(logData);
+                transfer.SendData(sendData);
+            }
         }
     }
 }
