@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
@@ -71,7 +72,7 @@ namespace UnityDebugViewer
         /// <summary>
         /// Regular expression for the stack message gathered from logcat process
         /// </summary>
-        private const string LOGCAT_REGEX = @"(?<time>[\d]+-[\d]+[\s]*[\d]+:[\d]+:[\d]+.[\d]+)[\s]*(?<logType>\w)/(?<filter>[\w]*)[\s]*\([\s\d]*\)[\s:]*";
+        private const string LOGCAT_REGEX = @"(?<date>[\d]+-[\d]+)[\s]*(?<time>[\d]+:[\d]+:[\d]+.[\d]+)[\s]*(?<logType>\w)/(?<filter>[\w]*)[\s]*\([\s\d]*\)[\s:]*";
         /// <summary>
         /// Add log to the UnityDebugViewerEditor correspond to 'ADBLogcat'
         /// </summary>
@@ -88,6 +89,9 @@ namespace UnityDebugViewer
                 string logType = match.Result("${logType}").ToUpper();
                 string time = match.Result("${time}");
                 string info = Regex.Replace(logcat, LOGCAT_REGEX, "");
+                string extraInfo = string.Empty;
+                string stackMessage = string.Empty;
+                List<LogStackData> stackList = new List<LogStackData>();
 
                 LogType type;
                 switch (logType)
@@ -106,7 +110,8 @@ namespace UnityDebugViewer
                         break;
                 }
 
-                UnityDebugViewerLogger.AddLog(info, string.Empty, type, editorMode);
+                var log = new LogData(info, extraInfo, stackMessage, stackList, time, type);
+                UnityDebugViewerLogger.AddLog(log, editorMode);
             }
         }
 

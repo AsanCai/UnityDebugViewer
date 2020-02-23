@@ -68,7 +68,7 @@ namespace UnityDebugViewer
         /// <summary>
         /// Regular expression for the log from log file
         /// </summary>
-        private const string LOG_FILE_TYPE_AND_TIME_REGEX = @"(?m)(^\[(?<logType>[\w]+)\][\s]*(?<time>[\d]+:[\d]+:[\d]+\.[\d]+\|[\d]+))";
+        private const string LOG_FILE_TYPE_AND_TIME_REGEX = @"(?m)(^\[(?<logType>[\w]+)\][\s]*(?<time>[\d]+:[\d]+:[\d]+\.[\d]+))(\|[\d]+)?";
         private const string LOG_FILE_STACK_REGEX = @"(?m)^(?<className>[\w]+(\.[\<\>\w\s\,\`]+)*)[\s]*:[\s]*(?<methodName>[\<\>\w\s\,\`\.]+\([\w\s\,\[\]\<\>\&\*\`]*\))\r*$";
         /// <summary>
         /// Add log to the UnityDebugViewerEditor correspond to 'ADBLogcat'
@@ -100,16 +100,16 @@ namespace UnityDebugViewer
 
                 }
 
-
                 string preProcessedStr = Regex.Replace(logStr, LOG_FILE_TYPE_AND_TIME_REGEX, "").Trim();
                 string info = Regex.Replace(preProcessedStr, LOG_FILE_STACK_REGEX, "").Trim();
-                string stack = string.Empty;
+                string extraInfo = string.Empty;
+                string stackMessage = string.Empty;
                 List<LogStackData> stackList = new List<LogStackData>();
 
                 if (string.IsNullOrEmpty(info) == false)
                 {
-                    stack = preProcessedStr.Replace(info, "").Trim();
-                    match = Regex.Match(stack, LOG_FILE_STACK_REGEX);
+                    stackMessage = preProcessedStr.Replace(info, "").Trim();
+                    match = Regex.Match(stackMessage, LOG_FILE_STACK_REGEX);
                     while (match.Success)
                     {
                         stackList.Add(new LogStackData(match));
@@ -117,7 +117,7 @@ namespace UnityDebugViewer
                     }
                 }
 
-                var log = new LogData(info, string.Empty, stack, stackList, type);
+                var log = new LogData(info, extraInfo, stackMessage, stackList, time, type);
                 UnityDebugViewerLogger.AddLog(log, editorMode);
             }
         }

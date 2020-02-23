@@ -28,7 +28,6 @@ namespace UnityDebugViewer
             }
         }
 
-
         private static GUIStyle _logFullMessageAreaStyle;
         public static GUIStyle logFullMessageAreaStyle
         {

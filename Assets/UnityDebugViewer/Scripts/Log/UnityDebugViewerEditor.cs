@@ -10,6 +10,7 @@ namespace UnityDebugViewer
     public struct LogFilter
     {
         public bool collapse;
+        public bool showTime;
         public bool showLog;
         public bool showWarning;
         public bool showError;
@@ -50,15 +51,17 @@ namespace UnityDebugViewer
                 }
                 else
                 {
+                    string logContent = log.GetContent(showTime);
+
                     try
                     {
-                        if (Regex.IsMatch(log.info, searchText))
+                        if (Regex.IsMatch(logContent, searchText))
                         {
                             return true;
                         }
                         else
                         {
-                            string input = log.info.ToLower();
+                            string input = logContent.ToLower();
                             string pattern = searchText.ToLower();
                             if(Regex.IsMatch(input, pattern))
                             {
@@ -72,7 +75,7 @@ namespace UnityDebugViewer
                     }
                     catch
                     {
-                        string input = log.info.ToLower();
+                        string input = logContent.ToLower();
                         string pattern = searchText.ToLower();
                         return input.Contains(pattern);
                     }
@@ -92,11 +95,6 @@ namespace UnityDebugViewer
     public class UnityDebugViewerEditor : ScriptableObject, ISerializationCallbackReceiver
     {
         #region 用于保存log数据
-        /// <summary>
-        /// log显示的最大条数
-        /// </summary>
-        public const int MAX_DISPLAY_NUM = 999;
-
         protected int _logNum = 0;
         public int logNum
         {
@@ -106,8 +104,7 @@ namespace UnityDebugViewer
             }
             private set
             {
-                int num = value > MAX_DISPLAY_NUM ? MAX_DISPLAY_NUM : value;
-                _logNum = num;
+                _logNum = value;
             }
         }
         protected int _warningNum = 0;
@@ -119,8 +116,7 @@ namespace UnityDebugViewer
             }
             private set
             {
-                int num = value > MAX_DISPLAY_NUM ? MAX_DISPLAY_NUM : value;
-                _warningNum = num;
+                _warningNum = value;
             }
         }
         protected int _errorNum = 0;
@@ -132,8 +128,7 @@ namespace UnityDebugViewer
             }
             private set
             {
-                int num = value > MAX_DISPLAY_NUM ? MAX_DISPLAY_NUM : value;
-                _errorNum = num;
+                _errorNum = value;
             }
         }
 
@@ -310,10 +305,14 @@ namespace UnityDebugViewer
         public int GetLogNum(LogData data)
         {
             int num = 1;
-            string key = data.GetKey();
-            if (collapsedLogDic.ContainsKey(key))
+            
+            if(logFilter.showTime == false)
             {
-                num = collapsedLogDic[key].count;
+                string key = data.GetKey();
+                if (collapsedLogDic.ContainsKey(key))
+                {
+                    num = collapsedLogDic[key].count;
+                }
             }
 
             return num;
@@ -326,7 +325,7 @@ namespace UnityDebugViewer
                 var selectedLog = this.selectedLog;
                 this.filteredLogList.Clear();
                 this.selectedLogIndex = -1;
-                var logList = filter.collapse ? this.collapsedLogList : this.logList;
+                var logList = (filter.collapse && !filter.showTime) ? this.collapsedLogList : this.logList;
                 for(int i = 0; i < logList.Count; i++)
                 {
                     var log = logList[i];

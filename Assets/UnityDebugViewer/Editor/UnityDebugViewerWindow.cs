@@ -48,6 +48,7 @@ namespace UnityDebugViewer
         private const string ErrorPausePref = "UNITY_DEBUG_VIEWER_WINDOW_ERROR_PAUSE";
         private const string AutoScrollPref = "UNITY_DEBUG_VIEWER_WINDOW_AUTO_SCROLL";
         private const string ShowAnalysisPref = "UNITY_DEBUG_VIEWER_SHOW_LOG_ANALYSIS";
+        private const string ShowTimePref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_TIME";
         private const string ShowLogPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_LOG";
         private const string ShowWarningPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_WARNING";
         private const string ShowErrorPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_ERROR";
@@ -58,6 +59,7 @@ namespace UnityDebugViewer
         public static bool errorPause = false;
         public static bool autoScroll = false;
         public static bool showlogAnalysis = false;
+        public static bool showTime = false;
         public static bool showLog = false;
         public static bool showWarning = false;
         public static bool showError = false;
@@ -125,6 +127,8 @@ namespace UnityDebugViewer
             errorPause = PlayerPrefs.GetInt(ErrorPausePref, 0) == 1;
             autoScroll = PlayerPrefs.GetInt(AutoScrollPref, 0) == 1;
             showlogAnalysis = PlayerPrefs.GetInt(ShowAnalysisPref, 0) == 1;
+
+            showTime = PlayerPrefs.GetInt(ShowTimePref, 0) == 1;
             showLog = PlayerPrefs.GetInt(ShowLogPref, 0) == 1;
             showWarning = PlayerPrefs.GetInt(ShowWarningPref, 0) == 1;
             showError = PlayerPrefs.GetInt(ShowErrorPref, 0) == 1;
@@ -253,15 +257,18 @@ namespace UnityDebugViewer
                     string errorNum = this.editorManager.activeEditor.errorNum.ToString();
 
                     EditorGUI.BeginChangeCheck();
+                    showTime = GUILayout.Toggle(showTime, new GUIContent("Time"), EditorStyles.toolbarButton);
                     showLog = GUILayout.Toggle(showLog, new GUIContent(logNum, UnityDebugViewerWindowStyleUtility.infoIconSmallTexture), EditorStyles.toolbarButton);
                     showWarning = GUILayout.Toggle(showWarning, new GUIContent(warningNum, UnityDebugViewerWindowStyleUtility.warningIconSmallTexture), EditorStyles.toolbarButton);
                     showError = GUILayout.Toggle(showError, new GUIContent(errorNum, UnityDebugViewerWindowStyleUtility.errorIconSmallTexture), EditorStyles.toolbarButton);
                     if (EditorGUI.EndChangeCheck())
                     {
+                        PlayerPrefs.SetInt(ShowTimePref, showTime ? 1 : 0);
                         PlayerPrefs.SetInt(ShowLogPref, showLog ? 1 : 0);
                         PlayerPrefs.SetInt(ShowWarningPref, showWarning ? 1 : 0);
                         PlayerPrefs.SetInt(ShowErrorPref, showError ? 1 : 0);
 
+                        this.logFilter.showTime = showTime;
                         this.logFilter.showLog = showLog;
                         this.logFilter.showWarning = showWarning;
                         this.logFilter.showError = showError;
@@ -380,10 +387,11 @@ namespace UnityDebugViewer
             {
                 logBoxStyle = index % 2 == 0 ? UnityDebugViewerWindowStyleUtility.oddLogBoxtyle : UnityDebugViewerWindowStyleUtility.evenLogBoxtyle;
             }
-
             GUI.DrawTexture(logBoxRect, logBoxStyle.normal.background);
 
-            var logBoxGUIContent = new GUIContent(log.info);
+
+            string logContent = log.GetContent(showTime);
+            var logBoxGUIContent = new GUIContent(logContent);
             var logContentHeight = logBoxStyle.CalcHeight(logBoxGUIContent, logBoxRect.width);
             logBoxStyle.alignment = logContentHeight > logBoxHeight ? TextAnchor.UpperLeft : TextAnchor.MiddleLeft;
             EditorGUI.LabelField(logBoxRect, logBoxGUIContent, logBoxStyle);
