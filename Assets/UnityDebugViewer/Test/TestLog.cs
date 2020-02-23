@@ -4,7 +4,6 @@ namespace UnityDebugViewer
 {
     public class TestLog : MonoBehaviour
     {
-        string info = string.Empty;
         float timer = 0f;
         private void Awake()
         {

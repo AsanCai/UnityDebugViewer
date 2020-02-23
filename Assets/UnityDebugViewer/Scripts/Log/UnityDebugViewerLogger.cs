@@ -287,171 +287,52 @@ namespace UnityDebugViewer
 
     public class UnityDebugViewerLogger
     {
-        /// <summary>
-        /// Add log to the UnityDebugViewerEditor correspond to 'Editor'
-        /// </summary>
-        /// <param name="transferLogData"></param>
-        public static void AddEditorLog(string info, string stack, LogType type)
-        {
-            UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor;
-            AddLog(info, stack, type, editorType);
-        }
-
-        /// <summary>
-        /// Add log to the UnityDebugViewerEditor correspond to 'ADBForward'
-        /// </summary>
-        /// <param name="transferLogData"></param>
-        public static void AddTransferLog(TransferLogData transferLogData)
-        {
-            UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.ADBForward;
-            LogType type = (LogType)transferLogData.logType;
-            string info = transferLogData.info;
-            string stack = transferLogData.stack;
-            AddLog(info, stack, type, editorType);
-        }
-
-        /// <summary>
-        /// Regular expression for the stack message gathered from logcat process
-        /// </summary>
-        private const string LOGCAT_REGEX = @"(?<time>[\d]+-[\d]+[\s]*[\d]+:[\d]+:[\d]+.[\d]+)[\s]*(?<logType>\w)/(?<filter>[\w]*)[\s]*\([\s\d]*\)[\s:]*";
-        /// <summary>
-        /// Add log to the UnityDebugViewerEditor correspond to 'ADBLogcat'
-        /// </summary>
-        /// <param name="logcat"></param>
-        public static void AddLogcatLog(string logcat)
-        {
-            if (Regex.IsMatch(logcat, LOGCAT_REGEX))
-            {
-                UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.ADBLogcat;
-                var match = Regex.Match(logcat, LOGCAT_REGEX);
-                string logType = match.Result("${logType}").ToUpper();
-                string tag = match.Result("${tag}");
-                string time = match.Result("${time}");
-                string info = Regex.Replace(logcat, LOGCAT_REGEX, "");
-
-                LogType type;
-                switch (logType)
-                {
-                    case "I":
-                        type = LogType.Log;
-                        break;
-                    case "W":
-                        type = LogType.Warning;
-                        break;
-                    case "E":
-                        type = LogType.Error;
-                        break;
-                    default:
-                        type = LogType.Error;
-                        break;
-                }
-                AddLog(info, string.Empty, type, editorType);
-            }
-        }
-
-        /// <summary>
-        /// Regular expression for the log from log file
-        /// </summary>
-        private const string LOG_FILE_TYPE_AND_TIME_REGEX = @"(?m)(^\[(?<logType>[\w]+)\][\s]*(?<time>[\d]+:[\d]+:[\d]+\.[\d]+\|[\d]+))";
-        private const string LOG_FILE_STACK_REGEX = @"(?m)^(?<className>[\w]+(\.[\<\>\w\s\,\`]+)*)[\s]*:[\s]*(?<methodName>[\<\>\w\s\,\`\.]+\([\w\s\,\[\]\<\>\&\*\`]*\))\r*$";
-        /// <summary>
-        /// Add log to the UnityDebugViewerEditor correspond to 'ADBLogcat'
-        /// </summary>
-        /// <param name="logcat"></param>
-        public static void AddLogFileLog(string logStr)
-        {
-            UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.LogFile;
-            var match = Regex.Match(logStr, LOG_FILE_TYPE_AND_TIME_REGEX);
-            if (match.Success)
-            {
-                string logType = match.Result("${logType}").ToLower();
-                string time = match.Result("${time}");
-                LogType type;
-                switch (logType)
-                {
-                    case "log":
-                        type = LogType.Log;
-                        break;
-                    case "warning":
-                        type = LogType.Warning;
-                        break;
-                    case "error":
-                        type = LogType.Error;
-                        break;
-                    default:
-                        type = LogType.Error;
-                        break;
-
-                }
-
-
-                string preProcessedStr = Regex.Replace(logStr, LOG_FILE_TYPE_AND_TIME_REGEX, "").Trim();
-                string info = Regex.Replace(preProcessedStr, LOG_FILE_STACK_REGEX, "").Trim();
-                string stack = string.Empty;
-                List<LogStackData> stackList = new List<LogStackData>();
-
-                if(string.IsNullOrEmpty(info) == false)
-                {
-                    stack = preProcessedStr.Replace(info, "").Trim();
-                    match = Regex.Match(stack, LOG_FILE_STACK_REGEX);
-                    while (match.Success)
-                    {
-                        stackList.Add(new LogStackData(match));
-                        match = match.NextMatch();
-                    }
-                }
-
-                var log = new LogData(info, string.Empty, stack, stackList, type);
-                AddLog(log, editorType);
-            }
-        }
-
-        public static void AddLog(string info, string stack, LogType type, UnityDebugViewerEditorType editorType)
+        public static void AddLog(string info, string stack, LogType type, string editorMode)
         {
             var logData = new LogData(info, stack, type);
-            AddLog(logData, editorType);
+            AddLog(logData, editorMode);
         }
 
-        public static void AddLog(string info, string extraMessage, List<StackFrame> stackFrameList, LogType type, UnityDebugViewerEditorType editorType)
+        public static void AddLog(string info, string extraMessage, List<StackFrame> stackFrameList, LogType type, string editorMode)
         {
             var logData = new LogData(info, extraMessage, stackFrameList, type);
-            AddLog(logData, editorType);
+            AddLog(logData, editorMode);
         }
 
         /// <summary>
         /// Add log to target UnityDebugViewerEditor
         /// </summary>
         /// <param name="data"></param>
-        /// <param name="editorType"></param>
-        public static void AddLog(LogData data, UnityDebugViewerEditorType editorType)
+        /// <param name="editorMode"></param>
+        public static void AddLog(LogData data, string editorMode)
         {
-            UnityDebugViewerEditorManager.GetEditor(editorType).AddLog(data);
+            UnityDebugViewerEditorManager.GetEditor(editorMode).AddLog(data);
         }
 
         [IgnoreStackTrace(true)]
-        public static void Log(string str, UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor)
+        public static void Log(string str, string editorMode = UnityDebugViewerDefaultMode.Editor)
         {
-            AddSystemLog(str, LogType.Log, editorType);
+            AddSystemLog(str, LogType.Log, editorMode);
         }
 
         [IgnoreStackTrace(true)]
-        public static void LogWarning(string str, UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor)
+        public static void LogWarning(string str, string editorMode = UnityDebugViewerDefaultMode.Editor)
         {
-            AddSystemLog(str, LogType.Warning, editorType);
+            AddSystemLog(str, LogType.Warning, editorMode);
         }
 
         [IgnoreStackTrace(true)]
-        public static void LogError(string str, UnityDebugViewerEditorType editorType = UnityDebugViewerEditorType.Editor)
+        public static void LogError(string str, string editorMode = UnityDebugViewerDefaultMode.Editor)
         {
-            AddSystemLog(str, LogType.Error, editorType);
+            AddSystemLog(str, LogType.Error, editorMode);
         }
 
         [IgnoreStackTrace]
-        private static void AddSystemLog(string str, LogType logType, UnityDebugViewerEditorType editorType)
+        private static void AddSystemLog(string str, LogType logType, string editorMode)
         {
             string extraInfo = string.Empty;
             var stackList = ParseSystemStackTrace(ref extraInfo);
-            AddLog(str, extraInfo, stackList, logType, editorType);
+            AddLog(str, extraInfo, stackList, logType, editorMode);
         }
 
         [IgnoreStackTrace]

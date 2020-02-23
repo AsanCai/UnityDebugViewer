@@ -193,7 +193,7 @@ namespace UnityDebugViewer
                     }
 
                     info = infoFieldInfo.GetValue(logEntryInstacne).ToString();
-                    UnityDebugViewerLogger.AddLog(info, string.Empty, LogType.Error, UnityDebugViewerEditorType.Editor);
+                    UnityDebugViewerLogger.AddLog(info, string.Empty, LogType.Error, UnityDebugViewerDefaultMode.Editor);
                 }
                 endGettingEntriesMethod.Invoke(logEntriesInstance, null);
             }
@@ -251,6 +251,24 @@ namespace UnityDebugViewer
 
             scrollPos.y -= moveDistacne;
         }
+
+        public static bool CheckADBStatus(string adbPath)
+        {
+            if (string.IsNullOrEmpty(adbPath))
+            {
+                EditorUtility.DisplayDialog("Unity Debug Viewer", "Cannot find adb path", "OK");
+                return false;
+            }
+
+            if (UnityDebugViewerADBUtility.CheckDevice(adbPath) == false)
+            {
+                EditorUtility.DisplayDialog("Unity Debug Viewer", "Cannot detect any connected devices", "OK");
+                return false;
+            }
+
+            return true;
+        }
+
 
         private static string adbPath = string.Empty;
         public static string GetAdbPath()

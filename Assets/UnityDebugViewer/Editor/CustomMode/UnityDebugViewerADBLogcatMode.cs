@@ -1,0 +1,114 @@
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
+using UnityEngine;
+using UnityEditor;
+
+namespace UnityDebugViewer
+{
+    public class UnityDebugViewerADBLogcatMode : UnityDebugViewerIntermediaryEditor
+    {
+        private string logcatTagFilterStr = "Unity";
+        private bool startLogcatProcess = false;
+
+        [InitializeOnLoadMethod]
+        private static void InitializeADBLogcatMode()
+        {
+            var intermediaryEditor = UnityDebugViewerEditorUtility.GetScriptableObjectInstance<UnityDebugViewerADBLogcatMode>();
+
+            UnityDebugViewerEditorManager.RegisterMode(UnityDebugViewerDefaultMode.ADBLogcat, intermediaryEditor, 2);
+        }
+
+        public override void OnGUI()
+        {
+            GUILayout.Label(new GUIContent("Tag Filter: "), EditorStyles.label);
+            logcatTagFilterStr = GUILayout.TextField(logcatTagFilterStr, EditorStyles.toolbarTextField, GUILayout.MinWidth(50f), GUILayout.MaxWidth(100f));
+
+            GUI.enabled = !startLogcatProcess;
+            if (GUILayout.Button(new GUIContent("Start"), EditorStyles.toolbarButton))
+            {
+                StartADBLogcat();
+            }
+
+            GUI.enabled = startLogcatProcess;
+            if (GUILayout.Button(new GUIContent("Stop"), EditorStyles.toolbarButton))
+            {
+                StopADBLogcat();
+            }
+
+            GUI.enabled = true;
+        }
+
+        public override void StartCompiling()
+        {
+            if (startLogcatProcess)
+            {
+                StopADBLogcat();
+            }
+        }
+
+        private void StartADBLogcat()
+        {
+            string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
+            if (UnityDebugViewerWindowUtility.CheckADBStatus(adbPath) == false)
+            {
+                return;
+            }
+
+            startLogcatProcess = UnityDebugViewerADBUtility.StartLogcatProcess(LogcatDataHandler, logcatTagFilterStr, adbPath);
+        }
+
+        private void StopADBLogcat()
+        {
+            UnityDebugViewerADBUtility.StopLogCatProcess();
+            startLogcatProcess = false;
+        }
+
+        private static void LogcatDataHandler(object sender, DataReceivedEventArgs outputLine)
+        {
+            AddLogcatLog(outputLine.Data);
+        }
+
+        /// <summary>
+        /// Regular expression for the stack message gathered from logcat process
+        /// </summary>
+        private const string LOGCAT_REGEX = @"(?<time>[\d]+-[\d]+[\s]*[\d]+:[\d]+:[\d]+.[\d]+)[\s]*(?<logType>\w)/(?<filter>[\w]*)[\s]*\([\s\d]*\)[\s:]*";
+        /// <summary>
+        /// Add log to the UnityDebugViewerEditor correspond to 'ADBLogcat'
+        /// </summary>
+        /// <param name="logcat"></param>
+        private static void AddLogcatLog(string logcat)
+        {
+            UnityDebugViewerLogger.AddLog(logcat, string.Empty, LogType.Log, UnityDebugViewerDefaultMode.Editor);
+
+            if (Regex.IsMatch(logcat, LOGCAT_REGEX))
+            {
+                string editorMode = UnityDebugViewerDefaultMode.ADBLogcat;
+
+                var match = Regex.Match(logcat, LOGCAT_REGEX);
+                string logType = match.Result("${logType}").ToUpper();
+                string time = match.Result("${time}");
+                string info = Regex.Replace(logcat, LOGCAT_REGEX, "");
+
+                LogType type;
+                switch (logType)
+                {
+                    case "I":
+                        type = LogType.Log;
+                        break;
+                    case "W":
+                        type = LogType.Warning;
+                        break;
+                    case "E":
+                        type = LogType.Error;
+                        break;
+                    default:
+                        type = LogType.Error;
+                        break;
+                }
+
+                UnityDebugViewerLogger.AddLog(info, string.Empty, type, editorMode);
+            }
+        }
+
+    }
+}

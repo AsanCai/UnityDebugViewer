@@ -53,14 +53,14 @@ namespace UnityDebugViewer
         private const string ShowErrorPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_ERROR";
 
         private static int logLineCount = 1;
-        private static bool collapse = false;
-        private static bool clearOnPlay = false;
-        private static bool errorPause = false;
-        private static bool autoScroll = false;
-        private static bool showlogAnalysis = false;
-        private static bool showLog = false;
-        private static bool showWarning = false;
-        private static bool showError = false;
+        public static bool collapse = false;
+        public static bool clearOnPlay = false;
+        public static bool errorPause = false;
+        public static bool autoScroll = false;
+        public static bool showlogAnalysis = false;
+        public static bool showLog = false;
+        public static bool showWarning = false;
+        public static bool showError = false;
 
         private List<LogData> logList = null;
 
@@ -76,13 +76,7 @@ namespace UnityDebugViewer
         private AnalysisDataSortType analysisDataSortType = AnalysisDataSortType.TotalCount;
         private string analysisSearchText = string.Empty;
 
-        private string pcPort = string.Empty;
-        private string phonePort = string.Empty;
-        private bool startForwardProcess = false;
-        private string logcatTagFilterStr = "Unity";
-        private bool startLogcatProcess = false;
         private int preLogNum = 0;
-        private string logFilePath;
         private string searchText = string.Empty;
 
         private Vector2 upperPanelScrollPos;
@@ -102,13 +96,6 @@ namespace UnityDebugViewer
 #else
             window.title = "Debug Viewer";
 #endif
-        }
-
-        [InitializeOnLoadMethod]
-        private static void StartCompilingListener()
-        {
-            Application.logMessageReceivedThreaded -= LogMessageReceivedHandler;
-            Application.logMessageReceivedThreaded += LogMessageReceivedHandler;
         }
 
         void IHasCustomMenu.AddItemsToMenu(GenericMenu menu)
@@ -151,7 +138,6 @@ namespace UnityDebugViewer
 
             analysisDataTreeView = new UnityDebugViewerAnalysisDataTreeView(this.editorManager.activeEditor.analysisDataManager.root);
 
-            UnityDebugViewerTransferUtility.disconnectToServerEvent += DisconnectToServerHandler;
 #if UNITY_2017_2_OR_NEWER
             EditorApplication.playModeStateChanged += PlayModeStateChangeHandler;
 #else
@@ -161,7 +147,6 @@ namespace UnityDebugViewer
 
         private void OnDestroy()
         {
-            UnityDebugViewerTransferUtility.disconnectToServerEvent -= DisconnectToServerHandler;
 #if UNITY_2017_2_OR_NEWER
             EditorApplication.playModeStateChanged -= PlayModeStateChangeHandler;
 #else
@@ -173,7 +158,7 @@ namespace UnityDebugViewer
         {
             if(isCompiling == false && EditorApplication.isCompiling)
             {
-                StartCompiling();
+                this.editorManager.activeEditor.StartCompiling();
             }
             isCompiling = EditorApplication.isCompiling;
 
@@ -182,12 +167,9 @@ namespace UnityDebugViewer
                 GUI.changed = true;
             }
 
-            if (GUI.changed)
-            {
-                // Call Repaint on OnInspectorUpdate as it repaints the windows
-                // less times as if it was OnGUI/Update
-                Repaint();
-            }
+            // Call Repaint on OnInspectorUpdate as it repaints the windows
+            // less times as if it was OnGUI/Update
+            Repaint();
         }
 
         private void OnGUI()
@@ -209,10 +191,6 @@ namespace UnityDebugViewer
                     if(GUILayout.Button(new GUIContent("Clear"), EditorStyles.toolbarButton, GUILayout.Width(40)))
                     {
                         this.editorManager.activeEditor.Clear();
-                        if (this.editorManager.activeEditorType == UnityDebugViewerEditorType.Editor)
-                        {
-                            UnityDebugViewerWindowUtility.ClearNativeConsoleWindow();
-                        }
                     }
 
                     GUILayout.Space(5);
@@ -245,89 +223,16 @@ namespace UnityDebugViewer
 
                     GUILayout.Space(5);
 
-                    Vector2 size = EditorStyles.toolbarPopup.CalcSize(new GUIContent(this.editorManager.activeEditorTypeStr));
+                    Vector2 size = EditorStyles.toolbarPopup.CalcSize(new GUIContent(this.editorManager.activeMode));
                     EditorGUI.BeginChangeCheck();
-                    this.editorManager.activeEditorType = (UnityDebugViewerEditorType)EditorGUILayout.EnumPopup(this.editorManager.activeEditorType, EditorStyles.toolbarPopup, GUILayout.Width(size.x));
+                    this.editorManager.activeModeIndex = EditorGUILayout.Popup(this.editorManager.activeModeIndex, this.editorManager.modeArray, EditorStyles.toolbarPopup, GUILayout.Width(size.x));
                     if (EditorGUI.EndChangeCheck())
                     {
                         this.analysisDataTreeView = new UnityDebugViewerAnalysisDataTreeView(this.editorManager.activeEditor.analysisDataManager.root);
                         this.shouldUpdateLogFilter = true;
                     }
 
-                    switch (this.editorManager.activeEditorType)
-                    {
-                        case UnityDebugViewerEditorType.Editor:
-                            break;
-                        case UnityDebugViewerEditorType.ADBForward:
-                            GUILayout.Label(new GUIContent("PC Port:"), EditorStyles.label);
-                            pcPort = GUILayout.TextField(pcPort, 5, EditorStyles.toolbarTextField, GUILayout.MinWidth(50f));
-                            if (string.IsNullOrEmpty(pcPort))
-                            {
-                                pcPort = UnityDebugViewerADBUtility.DEFAULT_FORWARD_PC_PORT;
-                            }
-                            else
-                            {
-                                pcPort = Regex.Replace(pcPort, @"[^0-9]", "");
-                            }
-
-                            GUILayout.Label(new GUIContent("Phone Port:"), EditorStyles.label);
-                            phonePort = GUILayout.TextField(phonePort, 5, EditorStyles.toolbarTextField, GUILayout.MinWidth(50f));
-                            if (string.IsNullOrEmpty(phonePort))
-                            {
-                                phonePort = UnityDebugViewerADBUtility.DEFAULT_FORWARD_PHONE_PORT;
-                            }
-                            else
-                            {
-                                phonePort = Regex.Replace(phonePort, @"[^0-9]", "");
-                            }
-
-                            GUI.enabled = !startForwardProcess;
-                            if (GUILayout.Button(new GUIContent("Start"), EditorStyles.toolbarButton))
-                            {
-                                StartADBForward();
-                            }
-
-                            GUI.enabled = startForwardProcess;
-                            if (GUILayout.Button(new GUIContent("Stop"), EditorStyles.toolbarButton))
-                            {
-                                StopADBForward();
-                            }
-
-                            GUI.enabled = true;
-                            break;
-                        case UnityDebugViewerEditorType.ADBLogcat:
-
-                            GUILayout.Label(new GUIContent("Tag Filter: "), EditorStyles.label);
-                            this.logcatTagFilterStr = GUILayout.TextField(this.logcatTagFilterStr, EditorStyles.toolbarTextField, GUILayout.MinWidth(50f), GUILayout.MaxWidth(100f));
-
-                            GUI.enabled = !startLogcatProcess;
-                            if (GUILayout.Button(new GUIContent("Start"), EditorStyles.toolbarButton))
-                            {
-                                StartADBLogcat();
-                            }
-
-                            GUI.enabled = startLogcatProcess;
-                            if (GUILayout.Button(new GUIContent("Stop"), EditorStyles.toolbarButton))
-                            {
-                                StopADBLogcat();
-                            }
-
-                            GUI.enabled = true;
-                            break;
-                        case UnityDebugViewerEditorType.LogFile:
-                            GUILayout.Label(new GUIContent("Log File Path:"), EditorStyles.label);
-
-                            this.logFilePath = EditorGUILayout.TextField(this.logFilePath, EditorStyles.toolbarTextField);
-                            if (GUILayout.Button(new GUIContent("Browser"), EditorStyles.toolbarButton))
-                            {
-                                this.logFilePath = EditorUtility.OpenFilePanel("Select log file", this.logFilePath, "txt,log");
-                            }
-                            if (GUILayout.Button(new GUIContent("Load"), EditorStyles.toolbarButton))
-                            {
-                                UnityDebugViewerEditorUtility.ParseLogFile(this.logFilePath);
-                            }
-                            break;
-                    }
+                    this.editorManager.activeEditor.OnGUI();
 
                     GUILayout.FlexibleSpace();
 
@@ -342,7 +247,6 @@ namespace UnityDebugViewer
                         this.logFilter.searchText = this.searchText;
                         this.shouldUpdateLogFilter = true;
                     }
-                    
 
                     string logNum = this.editorManager.activeEditor.logNum.ToString();
                     string warningNum = this.editorManager.activeEditor.warningNum.ToString();
@@ -871,109 +775,6 @@ namespace UnityDebugViewer
             EditorGUIUtility.systemCopyBuffer = str;
         }
 
-        private bool CheckADBStatus(string adbPath)
-        {
-            if (string.IsNullOrEmpty(adbPath))
-            {
-                EditorUtility.DisplayDialog("Unity Debug Viewer", "Cannot find adb path", "OK");
-                return false;
-            }
-
-            if (UnityDebugViewerADBUtility.CheckDevice(adbPath) == false)
-            {
-                EditorUtility.DisplayDialog("Unity Debug Viewer", "Cannot detect any connected devices", "OK");
-                return false;
-            }
-
-            return true;
-        }
-
-        private void StartADBForward()
-        {
-            string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
-            if(CheckADBStatus(adbPath) == false)
-            {
-                return;
-            }
-
-            startForwardProcess = UnityDebugViewerADBUtility.StartForwardProcess(pcPort, phonePort, adbPath);
-            if (startForwardProcess)
-            {
-                int port = 0;
-                if (int.TryParse(pcPort, out port))
-                {
-                    UnityDebugViewerTransferUtility.ConnectToServer("127.0.0.1", port);
-                }
-            }
-        }
-
-        private void DisconnectToServerHandler()
-        {
-            string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
-            if (UnityDebugViewerADBUtility.CheckDevice(adbPath) == false)
-            {
-                UnityDebugViewerLogger.LogError("No devices connect, adb forward process should be restart!", UnityDebugViewerEditorType.ADBForward);
-
-                StopADBForward();
-            }
-        }
-
-        private void StopADBForward()
-        {
-            string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
-
-            UnityDebugViewerADBUtility.StopForwardProcess(adbPath);
-            startForwardProcess = false;
-
-            /// will abort process, should excute at last
-            UnityDebugViewerTransferUtility.Clear();
-        }
-
-        private void StartADBLogcat()
-        {
-            string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
-            if (CheckADBStatus(adbPath) == false)
-            {
-                return;
-            }
-
-            startLogcatProcess = UnityDebugViewerADBUtility.StartLogcatProcess(LogcatDataHandler, logcatTagFilterStr, adbPath);
-        }
-
-        private void StopADBLogcat()
-        {
-            UnityDebugViewerADBUtility.StopLogCatProcess();
-            startLogcatProcess = false;
-        }
-
-        private void StartCompiling()
-        {
-            if (startForwardProcess)
-            {
-                StopADBForward();
-            }
-
-            if (startLogcatProcess)
-            {
-                StopADBLogcat();
-            }
-        }
-
-
-        private static void LogMessageReceivedHandler(string info, string stackTrace, LogType type)
-        {
-            if (type == LogType.Error || type == LogType.Assert || type == LogType.Exception)
-            {
-                UnityDebugViewerEditorManager.ForceActiveEditor(UnityDebugViewerEditorType.Editor);
-                if (errorPause)
-                {
-                    UnityEngine.Debug.Break();
-                }
-            }
-
-            UnityDebugViewerLogger.AddEditorLog(info, stackTrace, type);
-        }
-
         private static void SetLogLineCount(object obj)
         {
             int count = (int)obj;
@@ -996,11 +797,6 @@ namespace UnityDebugViewer
             }
 
             isPlaying = EditorApplication.isPlayingOrWillChangePlaymode;
-        }
-
-        private void LogcatDataHandler(object sender, DataReceivedEventArgs outputLine)
-        {
-            UnityDebugViewerLogger.AddLogcatLog(outputLine.Data);
         }
     }
 }

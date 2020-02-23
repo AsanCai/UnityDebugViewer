@@ -7,6 +7,7 @@ using UnityEngine;
 namespace UnityDebugViewer
 {
     public delegate void DisconnectHandler();
+    public delegate void ReceiveDataHandler(byte[] data);
 
     public class UnityDebugViewerTransfer
     {
@@ -21,6 +22,7 @@ namespace UnityDebugViewer
 
         public event DisconnectHandler disconnectToServerEvent;
         public event DisconnectHandler disconnectToClientrEvent;
+        public event ReceiveDataHandler receiveDaraFromServerEvent;
 
         public void ConnectToServer(string ip, int port)
         {
@@ -58,10 +60,12 @@ namespace UnityDebugViewer
                 byte[] receivedBytes = new byte[receiveLength];
                 Array.Copy(receiveBuffer, receivedBytes, receiveLength);
 
-                TransferLogData data = UnityDebugViewerTransferUtility.BytesToStruct<TransferLogData>(receivedBytes);
-                UnityDebugViewerLogger.AddTransferLog(data);
+                if(receiveDaraFromServerEvent != null)
+                {
+                    receiveDaraFromServerEvent(receivedBytes);
+                }
             }
-        }
+        } 
 
         private void ConnectToServerSocket()
         {
@@ -83,7 +87,7 @@ namespace UnityDebugViewer
                     disconnectToServerEvent();
                 }
 
-                UnityDebugViewerLogger.LogError(e.ToString(), UnityDebugViewerEditorType.ADBForward);
+                UnityDebugViewerLogger.LogError(e.ToString(), UnityDebugViewerDefaultMode.ADBForward);
             }
         }
 
@@ -113,7 +117,7 @@ namespace UnityDebugViewer
                 {
                     receiveLength = clientSocket.Receive(receiveBuffer);
                 }
-                catch(Exception e)
+                catch
                 {
                     if(disconnectToClientrEvent != null)
                     {
@@ -141,7 +145,7 @@ namespace UnityDebugViewer
             }
             catch(Exception e)
             {
-                UnityDebugViewerLogger.LogError(e.ToString(), UnityDebugViewerEditorType.ADBForward);
+                UnityDebugViewerLogger.LogError(e.ToString(), UnityDebugViewerDefaultMode.ADBForward);
             }
         }
 

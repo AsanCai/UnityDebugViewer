@@ -228,14 +228,8 @@ namespace UnityDebugViewer
         }
         #endregion
 
-        private UnityDebugViewerEditorType _type = UnityDebugViewerEditorType.Editor;
-        public UnityDebugViewerEditorType type
-        {
-            get
-            {
-                return _type;
-            }
-        }
+        public string mode;
+        public UnityDebugViewerIntermediaryEditor intermediaryEditor;
 
         [SerializeField]
         private UnityDebugViewerAnalysisDataManager _analysisDataManager = null;
@@ -252,17 +246,17 @@ namespace UnityDebugViewer
             }
         }
 
-        public static UnityDebugViewerEditor CreateInstance(UnityDebugViewerEditorType editorType)
+        public static UnityDebugViewerEditor CreateEditorInstance(string mode)
         {
             var editor = ScriptableObject.CreateInstance<UnityDebugViewerEditor>();
-
-            BindingFlags flag = BindingFlags.Instance | BindingFlags.NonPublic;
-            Type type = editor.GetType();
-            FieldInfo field = type.GetField("_type", flag);
-            field.SetValue(editor, editorType);
-
+            editor.mode = mode;
             return editor;
         }
+
+        /// <summary>
+        ///  不允许使用默认构造函数创建实例
+        /// </summary>
+        private UnityDebugViewerEditor() { }
 
         /// <summary>
         /// 序列化结束时会被调用
@@ -290,6 +284,27 @@ namespace UnityDebugViewer
             logNum = 0;
             warningNum = 0;
             errorNum = 0;
+
+            if (intermediaryEditor != null)
+            {
+                intermediaryEditor.Clear();
+            }
+        }
+
+        public void OnGUI()
+        {
+            if (intermediaryEditor != null)
+            {
+                intermediaryEditor.OnGUI();
+            }
+        }
+
+        public void StartCompiling()
+        {
+            if(intermediaryEditor != null)
+            {
+                intermediaryEditor.StartCompiling();
+            }
         }
 
         public int GetLogNum(LogData data)

@@ -142,7 +142,7 @@ namespace UnityDebugViewer {
 			UnityDebugViewerAnalysisDataTreeItem node = _root;
             if(log.stackList.Count == 0)
             {
-                UnityDebugViewerAnalysisData stackNode = new UnityDebugViewerAnalysisData(null, log.type, node.Level == 0);
+                UnityDebugViewerAnalysisData stackNode = new UnityDebugViewerAnalysisData(null, log.type, false);
                 UnityDebugViewerAnalysisDataTreeItem child = node.FindInChildren(stackNode);
                 if (child == null)
                 {
@@ -161,7 +161,7 @@ namespace UnityDebugViewer {
             {
                 for (int i = log.stackList.Count - 1; i >= 0; i--)
                 {
-                    UnityDebugViewerAnalysisData stackNode = new UnityDebugViewerAnalysisData(log.stackList[i], log.type, node.Level == 0);
+                    UnityDebugViewerAnalysisData stackNode = new UnityDebugViewerAnalysisData(log.stackList[i], log.type, false);
                     UnityDebugViewerAnalysisDataTreeItem child = node.FindInChildren(stackNode);
                     if (child == null)
                     {
