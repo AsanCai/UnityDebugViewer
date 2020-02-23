@@ -24,8 +24,8 @@ UnityDebugViewer
 如何使用
 ---------------------
 
-1. 将本仓库克隆至本地或者直接下载
-1. 将`Assets/UnityDebugViewer`文件夹移植至项目中`Assets`目录下的任意文件夹
+1. 将本仓库克隆至本地（或者直接在[Release](https://github.com/AsanCai/UnityDebugViewer/releases)中下载package）
+1. 将`UnityDebugViewer`文件夹移植至项目中`Assets`目录下的任意文件夹（或者直接导入下载好的package）
 1. 选择`Window->Debug Viewer`打开窗口
 
 基本功能
