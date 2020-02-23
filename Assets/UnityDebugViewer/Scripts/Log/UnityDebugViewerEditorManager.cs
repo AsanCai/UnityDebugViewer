@@ -83,6 +83,10 @@ namespace UnityDebugViewer
                 {
                     defaultMode = modeList[activeModeIndex];
                 }
+                else
+                {
+                    activeModeIndex = 0;
+                }
 
                 return defaultMode;
             }
@@ -142,7 +146,7 @@ namespace UnityDebugViewer
         /// <param name="mode"></param>
         /// <param name="order"></param>
         /// <returns></returns>
-        public static void RegisterMode(string mode, UnityDebugViewerIntermediaryEditor intermediaryEditor = null, int order = int.MaxValue)
+        public static void RegisterMode<T>(string mode, int order = int.MaxValue) where T : UnityDebugViewerIntermediaryEditor
         {
             if(modeList.Contains(mode) == false)
             {
@@ -168,6 +172,7 @@ namespace UnityDebugViewer
                 }
             }
 
+            UnityDebugViewerIntermediaryEditor intermediaryEditor = UnityDebugViewerEditorUtility.GetScriptableObjectInstance<T>();
             if (intermediaryEditorDic.ContainsKey(mode))
             {
                 intermediaryEditorDic[mode] = intermediaryEditor;

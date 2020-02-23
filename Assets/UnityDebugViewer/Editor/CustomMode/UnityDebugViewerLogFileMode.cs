@@ -13,9 +13,7 @@ namespace UnityDebugViewer
         [InitializeOnLoadMethod]
         private static void InitializeLogFileMode()
         {
-            var intermediaryEditor = UnityDebugViewerEditorUtility.GetScriptableObjectInstance<UnityDebugViewerLogFileMode>();
-
-            UnityDebugViewerEditorManager.RegisterMode(UnityDebugViewerDefaultMode.LogFile, intermediaryEditor, 3);
+            UnityDebugViewerEditorManager.RegisterMode<UnityDebugViewerLogFileMode>(UnityDebugViewerDefaultMode.LogFile, 3);
         }
 
         public override void OnGUI()

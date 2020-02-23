@@ -14,9 +14,7 @@ namespace UnityDebugViewer
         [InitializeOnLoadMethod]
         private static void InitializeADBLogcatMode()
         {
-            var intermediaryEditor = UnityDebugViewerEditorUtility.GetScriptableObjectInstance<UnityDebugViewerADBLogcatMode>();
-
-            UnityDebugViewerEditorManager.RegisterMode(UnityDebugViewerDefaultMode.ADBLogcat, intermediaryEditor, 2);
+            UnityDebugViewerEditorManager.RegisterMode<UnityDebugViewerADBLogcatMode>(UnityDebugViewerDefaultMode.ADBLogcat, 2);
         }
 
         public override void OnGUI()
@@ -79,8 +77,6 @@ namespace UnityDebugViewer
         /// <param name="logcat"></param>
         private static void AddLogcatLog(string logcat)
         {
-            UnityDebugViewerLogger.AddLog(logcat, string.Empty, LogType.Log, UnityDebugViewerDefaultMode.Editor);
-
             if (Regex.IsMatch(logcat, LOGCAT_REGEX))
             {
                 string editorMode = UnityDebugViewerDefaultMode.ADBLogcat;

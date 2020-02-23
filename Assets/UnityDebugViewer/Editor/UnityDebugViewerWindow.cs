@@ -448,7 +448,7 @@ namespace UnityDebugViewer
             {
                 if (logBoxRect.Contains(Event.current.mousePosition) && Event.current.button == 1)
                 {
-                    ShowCopyMenu(log.info);
+                    ShowCopyMenu(logContent);
 
                     UnityDebugViewerWindowUtility.activeControlID = this.logBoxControlID;
                     Event.current.Use();

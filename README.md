@@ -24,6 +24,8 @@ UnityDebugViewer
 1. `修改log框大小`的功能：点击`UnityDebugViewer`右上角的下拉菜单，并点击`Log Entry`可以选择log框的大小
 1. `自动滚动至最新log`的功能：勾选`Auto Scroll`，当有新的log输出至窗口时，滚动条会自动滚动至底部；
 1. `搜素log`的功能：在工具栏右边的搜索框，输入`关键词`或者`正则表达式`可以对当前的log进行搜索；
+1. `对时间进行筛选`的功能：勾选搜索框右侧的`Time`之后，会显示log产生的时间，此时可以使用`正则表达式`对时间进行筛选，从而获取某个时间段内产生的所有log；
+![Show Source Content](./Screenshots/log_show_time.png)
 1. `显示堆栈源代码内容`的功能：选中某一条log，可以展示该log的所有堆栈信息。如果堆栈包含源代码信息，且对应的文件存在，可以直接展示源码的内容；
 ![Show Source Content](./Screenshots/log_stack.png)
 1. `跳转到源代码`的功能：如果log的堆栈包含源代码信息，直接用鼠标右键双击log或者堆栈，可以直接打开对应的源代码文件，并直接跳转对应的行数；
@@ -32,10 +34,10 @@ UnityDebugViewer
 ![Show Analysis](./Screenshots/log_analysis.png)
 1. `使用键盘改变当前选中对象`的功能：当选中log、堆栈或者log统计条目的时候，可以按`↑`和`↓`来改变当前选中的对象。此外，选中log时，还可以按鼠标中键快速跳转到当前选中的log；
 
-核心功能
+默认模式
 ---------------------
 
-`UnityDebugViewer`拥有`Editor`、`ADB Forward`、`ADB Logcat`和`Log File`四种模式，它们分别拥有不同的拓展功能。
+`UnityDebugViewer`拥有`Editor`、`ADB Forward`、`ADB Logcat`和`Log File`四种默认模式，它们分别拥有不同的功能。
 
 ### Editor
 `UnityDebugViewer`的`Editor`模式等同于Unity自带的`Console Window`，它能获取使用`UnityEngine.Debug`输出的log以及项目编译、运行时产生的告警或者异常信息。
@@ -46,7 +48,7 @@ UnityDebugViewer
 `UnityDebugViewer`的`ADB Forward`模式集成了adb的forward指令，允许用户通过tcp将项目在手机上运行时产生的log数据传输至`UnityDebugViewer`上。
 ![ADB Forward Mode](./Screenshots/adb_forward_mode.png)
 其使用方式如下：
-1. 将`Assets/DebugViewer/Test/TestTcp.cs`附加到项目初始场景的某一空物体中
+1. 将`UnityDebugViewer/Test/TestTcp.cs`附加到项目初始场景的某一空物体中
 1. 在将项目构建成apk时勾选`Development`，然后将构建好的apk安装至安卓设备并运行
 1. 使用usb连接线将安卓设备连接至电脑，并开启`开发者调试`选项
 1. 按照实际情况修改`PC Port`(PC端用于数据转发的端口)和`Phone Port`(手机端用于数据转发的端口)
@@ -127,3 +129,87 @@ UnityEngine.Logger:Log(LogType, Object)
 其使用方式如下：
 1. 点击`Browser`选择要解析的log文件
 1. 点击`Load`加载指定的log文件并解析其内容
+
+
+添加自定义的模式
+---------------------
+
+除了使用`UnityDebugViewer`提供的四种默认模式，`UnityDebugViewer`还允许开发者根据项目的实际需求添加自定义的模式。添加自定义的模式并不复杂，其步骤如下：
+1. 在任一`Editor`文件夹下创建一个继承自`UnityDebugViewer.UnityDebugViewerIntermediaryEditor`的类
+1. 使用`[InitializeOnLoadMethod]`标记一个`静态方法`作为初始化入口
+1. 在初始化入口中使用`UnityDebugViewerEditorManager.RegisterMode`方法注册自定义模式
+    > ```UnityDebugViewerEditorManager.RegisterMode<T>(string mode, int order)```    
+    > T: UnityDebugViewerIntermediaryEditor或者其子类
+    >> 参数：
+    >>
+    >> mode: 自定义模式的名称
+    >> 
+    >> order: 自定义模式的权重，用于决定其在下拉列表中的显示顺序。如果权重相同，则会根据注册的顺序来显示
+1. 覆写`UnityDebugViewer.UnityDebugViewerIntermediaryEditor`提供的`Clear`、`OnGUI`和`StartCompiling`方法
+1. 根据具体需求，使用`UnityDebugViewerLogger.Log`、`UnityDebugViewerLogger.LogWarning`或者`UnityDebugViewerLogger.LogError`方法将log输出至自定义模式对应的UnityDebugViewerEditor上
+
+
+为了方便使用者快速掌握如何添加自定义的模式，`UnityDebugViewer`提供了`UnityDebugViewer/Test/Editor/TestCustomMode.cs`作为添加自定义模式的例子。
+![Custom Mode](./Screenshots/custom_mode.png)
+如果不想保留`TestCustomMode`，将`UnityDebugViewer/Test/Editor/TestCustomMode.cs`这一脚本删除即可。以下是`TestCustomMode.cs`的内容和详细注释，它包括了添加自定义模式的所有步骤。
+``` cs
+using UnityEngine;
+using UnityEditor;
+
+namespace UnityDebugViewer
+{
+    public class TestCustomMode : UnityDebugViewerIntermediaryEditor
+    {
+        /// <summary>
+        /// 模式的名称
+        /// </summary>
+        private const string MODE_NAME = "TestCustomMode";
+
+        /// <summary>
+        /// 标记初始化的入口
+        /// </summary>
+        [InitializeOnLoadMethod]
+        private static void InitializeTestCustomMode()
+        {
+            /// 自定义模式的权重，用于决定其在下拉列表中的显示顺序
+            int order = 10;
+
+            /// 添加自定义的模式
+            UnityDebugViewerEditorManager.RegisterMode<TestCustomMode>(MODE_NAME, order);
+        }
+
+        /// <summary>
+        /// 在点击Clear按钮时被调用
+        /// </summary>
+        public override void Clear()
+        {
+            base.Clear();
+
+            UnityDebugViewerLogger.Log("Clear", MODE_NAME);
+        }
+
+        /// <summary>
+        /// 在下拉列表中选择当前的模式时被调用
+        /// </summary>
+        public override void OnGUI()
+        {
+            base.OnGUI();
+
+            if (GUILayout.Button(new GUIContent("Add Log"), EditorStyles.toolbarButton))
+            {
+                UnityDebugViewerLogger.Log("Add Log", MODE_NAME);
+            }
+        }
+
+        /// <summary>
+        /// 在脚本开始编译时被调用
+        /// </summary>
+        public override void StartCompiling()
+        {
+            base.StartCompiling();
+
+            UnityDebugViewerLogger.Log("StartCompiling", MODE_NAME);
+        }
+    }
+}
+```

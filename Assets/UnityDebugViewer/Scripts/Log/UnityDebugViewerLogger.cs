@@ -296,47 +296,47 @@ namespace UnityDebugViewer
 
     public class UnityDebugViewerLogger
     {
-        public static void AddLog(string info, string stack, LogType type, string editorMode)
+        public static void AddLog(string info, string stack, LogType type, string modeName)
         {
             var logData = new LogData(info, stack, type);
-            AddLog(logData, editorMode);
+            AddLog(logData, modeName);
         }
 
-        public static void AddLog(string info, string extraMessage, List<StackFrame> stackFrameList, LogType type, string editorMode)
+        public static void AddLog(string info, string extraMessage, List<StackFrame> stackFrameList, LogType type, string modeName)
         {
             var logData = new LogData(info, extraMessage, stackFrameList, type);
-            AddLog(logData, editorMode);
+            AddLog(logData, modeName);
         }
 
-        public static void AddLog(LogData data, string editorMode)
+        public static void AddLog(LogData data, string modeName)
         {
-            UnityDebugViewerEditorManager.GetEditor(editorMode).AddLog(data);
-        }
-
-        [IgnoreStackTrace(true)]
-        public static void Log(string str, string editorMode = UnityDebugViewerDefaultMode.Editor)
-        {
-            AddSystemLog(str, LogType.Log, editorMode);
+            UnityDebugViewerEditorManager.GetEditor(modeName).AddLog(data);
         }
 
         [IgnoreStackTrace(true)]
-        public static void LogWarning(string str, string editorMode = UnityDebugViewerDefaultMode.Editor)
+        public static void Log(string str, string modeName = UnityDebugViewerDefaultMode.Editor)
         {
-            AddSystemLog(str, LogType.Warning, editorMode);
+            AddSystemLog(str, LogType.Log, modeName);
         }
 
         [IgnoreStackTrace(true)]
-        public static void LogError(string str, string editorMode = UnityDebugViewerDefaultMode.Editor)
+        public static void LogWarning(string str, string modeName = UnityDebugViewerDefaultMode.Editor)
         {
-            AddSystemLog(str, LogType.Error, editorMode);
+            AddSystemLog(str, LogType.Warning, modeName);
+        }
+
+        [IgnoreStackTrace(true)]
+        public static void LogError(string str, string modeName = UnityDebugViewerDefaultMode.Editor)
+        {
+            AddSystemLog(str, LogType.Error, modeName);
         }
 
         [IgnoreStackTrace]
-        private static void AddSystemLog(string str, LogType logType, string editorMode)
+        private static void AddSystemLog(string str, LogType logType, string modeName)
         {
             string extraInfo = string.Empty;
             var stackList = ParseSystemStackTrace(ref extraInfo);
-            AddLog(str, extraInfo, stackList, logType, editorMode);
+            AddLog(str, extraInfo, stackList, logType, modeName);
         }
 
         [IgnoreStackTrace]

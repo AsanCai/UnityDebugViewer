@@ -5,12 +5,13 @@ namespace UnityDebugViewer
 {
     public class UnityDebugViewerEditorMode : UnityDebugViewerIntermediaryEditor
     {
+        /// <summary>
+        /// 标记入口方法
+        /// </summary>
         [InitializeOnLoadMethod]
         private static void InitializeEditorMode()
         {
-            var intermediaryEditor = UnityDebugViewerEditorUtility.GetScriptableObjectInstance<UnityDebugViewerEditorMode>();
-
-            UnityDebugViewerEditorManager.RegisterMode(UnityDebugViewerDefaultMode.Editor, intermediaryEditor, 0);
+            UnityDebugViewerEditorManager.RegisterMode<UnityDebugViewerEditorMode>(UnityDebugViewerDefaultMode.Editor, 0);
 
             Application.logMessageReceivedThreaded -= LogMessageReceivedHandler;
             Application.logMessageReceivedThreaded += LogMessageReceivedHandler;
@@ -36,7 +37,7 @@ namespace UnityDebugViewer
         }
 
         /// <summary>
-        /// Add log to the UnityDebugViewerEditor correspond to 'Editor'
+        /// 将log输出至UnityDebugViewerDefaultMode.Editor对应的UnityDebugViewerEditor
         /// </summary>
         /// <param name="transferLogData"></param>
         public static void AddEditorLog(string info, string stack, LogType type)

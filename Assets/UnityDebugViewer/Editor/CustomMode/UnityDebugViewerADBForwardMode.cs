@@ -13,9 +13,7 @@ namespace UnityDebugViewer
         [InitializeOnLoadMethod]
         private static void InitializeADBForwardMode()
         {
-            var intermediaryEditor = UnityDebugViewerEditorUtility.GetScriptableObjectInstance<UnityDebugViewerADBForwardMode>();
-
-            UnityDebugViewerEditorManager.RegisterMode(UnityDebugViewerDefaultMode.ADBForward, intermediaryEditor, 1);
+            UnityDebugViewerEditorManager.RegisterMode<UnityDebugViewerADBForwardMode>(UnityDebugViewerDefaultMode.ADBForward, 1);
         }
 
         private void Awake()
