@@ -38,7 +38,7 @@ namespace UnityDebugViewer
         {
             get
             {
-                return (logLineCount + 1) * EditorGUIUtility.singleLineHeight;
+                return (logLineCount + 2) * EditorGUIUtility.singleLineHeight;
             }
         }
 
@@ -112,8 +112,8 @@ namespace UnityDebugViewer
 
         private void Awake()
         {
-            /// 确保只被赋值一次
-            editorManager = UnityDebugViewerEditorManager.GetInstance();
+            /// 确保只被赋值一次，否则序列化时log数据将会丢失
+            editorManager = new UnityDebugViewerEditorManager();
         }
 
         /// <summary>

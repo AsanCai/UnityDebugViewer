@@ -8,7 +8,7 @@ namespace UnityDebugViewer
     /// Manage all UnityDebugViewerEditor binded to UnityDebugViewerWindow
     /// </summary>
     [Serializable]
-    public class UnityDebugViewerEditorManager : ScriptableObject, ISerializationCallbackReceiver
+    public class UnityDebugViewerEditorManager : ISerializationCallbackReceiver
     {
         private static List<int> _modeOrderList;
         private static List<int> modeOrderList
@@ -201,7 +201,7 @@ namespace UnityDebugViewer
             }
             else
             {
-                editor = UnityDebugViewerEditor.CreateEditorInstance(mode);
+                editor = new UnityDebugViewerEditor(mode);
                 editorDic.Add(mode, editor);
             }
 
@@ -212,23 +212,6 @@ namespace UnityDebugViewer
 
             return editor;
         }
-
-        public static UnityDebugViewerEditorManager GetInstance()
-        {
-            var manager = ScriptableObject.FindObjectOfType<UnityDebugViewerEditorManager>();
-            if (manager == null)
-            {
-                manager = ScriptableObject.CreateInstance<UnityDebugViewerEditorManager>();
-            }
-
-            return manager;
-        }
-
-        void OnEnable()
-        {
-            hideFlags = HideFlags.HideAndDontSave;
-        }
-
 
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {

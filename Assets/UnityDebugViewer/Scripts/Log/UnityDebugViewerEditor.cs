@@ -92,7 +92,7 @@ namespace UnityDebugViewer
     /// The backend of UnityDebugViewer and provide data for UnityDebugViewerWindow
     /// </summary>
     [Serializable]
-    public class UnityDebugViewerEditor : ScriptableObject, ISerializationCallbackReceiver
+    public class UnityDebugViewerEditor : ISerializationCallbackReceiver
     {
         #region 用于保存log数据
         protected int _logNum = 0;
@@ -223,7 +223,14 @@ namespace UnityDebugViewer
         }
         #endregion
 
-        public string mode;
+        private string _mode;
+        public string mode
+        {
+            get
+            {
+                return _mode;
+            }
+        }
         public UnityDebugViewerIntermediaryEditor intermediaryEditor;
 
         [SerializeField]
@@ -241,25 +248,9 @@ namespace UnityDebugViewer
             }
         }
 
-        public static UnityDebugViewerEditor CreateEditorInstance(string mode)
+        public UnityDebugViewerEditor(string mode)
         {
-            var editor = ScriptableObject.CreateInstance<UnityDebugViewerEditor>();
-            editor.mode = mode;
-            return editor;
-        }
-
-        /// <summary>
-        ///  不允许使用默认构造函数创建实例
-        /// </summary>
-        private UnityDebugViewerEditor() { }
-
-        /// <summary>
-        /// 序列化结束时会被调用
-        /// </summary>
-        private void OnEnable()
-        {
-            /// 确保在序列化时，可序列化的数据成员不会被重置
-            hideFlags = HideFlags.HideAndDontSave;
+            _mode = mode;
         }
 
         /// <summary>

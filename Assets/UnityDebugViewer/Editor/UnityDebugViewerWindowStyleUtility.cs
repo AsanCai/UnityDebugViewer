@@ -403,6 +403,7 @@ namespace UnityDebugViewer
                     {
                         _oddEntryStyle = new GUIStyle();
                     }
+                    _oddEntryStyle.richText = true;
                 }
 
                 return _oddEntryStyle;
@@ -422,6 +423,7 @@ namespace UnityDebugViewer
                     {
                         _evenEntryStyle = new GUIStyle();
                     }
+                    _evenEntryStyle.richText = true;
                 }
 
                 return _evenEntryStyle;
@@ -440,6 +442,7 @@ namespace UnityDebugViewer
                     {
                         _selectedEntryStyle = new GUIStyle();
                     }
+                    _selectedEntryStyle.richText = true;
                 }
 
                 return _selectedEntryStyle;
@@ -457,6 +460,7 @@ namespace UnityDebugViewer
                     {
                         _inactiveEntryStyle = skin.GetStyle("LODBlackBox");
                     }
+                    _inactiveEntryStyle.richText = true;
                 }
 
                 return _inactiveEntryStyle;
