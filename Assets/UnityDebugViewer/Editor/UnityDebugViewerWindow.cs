@@ -89,7 +89,7 @@ namespace UnityDebugViewer
         private GUIStyle logBoxStyle;
         private GUIStyle stackBoxStyle;
 
-        [MenuItem("Window/Debug Viewer")]
+        [MenuItem("Window/Debug Viewer", false, 100)]
         private static void OpenWindow()
         {
             UnityDebugViewerWindow window = GetWindow<UnityDebugViewerWindow>();
