@@ -107,21 +107,8 @@ namespace UnityDebugViewer
                 var lineString = i == 1 ? "Line" : "Lines";
                 menu.AddItem(new GUIContent(string.Format("Log Entry/{0} {1}", i, lineString)), i == logLineCount, SetLogLineCount, i);
             }
-
-            menu.AddItem(new GUIContent("About UnityDebugViewer"), false, ClickHelpBtn, null);
         }
 
-        private static void SetLogLineCount(object obj)
-        {
-            int count = (int)obj;
-            logLineCount = count;
-            PlayerPrefs.SetInt(LogLineCountPref, count);
-        }
-
-        private static void ClickHelpBtn(object obj)
-        {
-            Application.OpenURL("https://github.com/AsanCai/UnityDebugViewer");
-        }
 
         private void Awake()
         {
@@ -794,6 +781,13 @@ namespace UnityDebugViewer
             }
 
             EditorGUIUtility.systemCopyBuffer = str;
+        }
+
+        private static void SetLogLineCount(object obj)
+        {
+            int count = (int)obj;
+            logLineCount = count;
+            PlayerPrefs.SetInt(LogLineCountPref, count);
         }
 
 #if UNITY_2017_2_OR_NEWER
