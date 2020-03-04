@@ -14,11 +14,19 @@ namespace UnityDebugViewer
         public bool showLog;
         public bool showWarning;
         public bool showError;
+
+        public bool searchWithRegex;
         public string searchText;
 
         public bool Equals(LogFilter filter)
         {
-            return this.collapse == filter.collapse && this.showLog == filter.showLog && this.showWarning == filter.showWarning && this.showError == filter.showError && this.searchText.Equals(filter.searchText);
+            return this.collapse == filter.collapse
+                && this.showTime == filter.showTime
+                && this.showLog == filter.showLog
+                && this.showWarning == filter.showWarning
+                && this.showError == filter.showError
+                && this.searchWithRegex == filter.searchWithRegex
+                && this.searchText.Equals(filter.searchText);
         }
 
         public bool ShouldDisplay(LogData log)
@@ -52,31 +60,41 @@ namespace UnityDebugViewer
                 else
                 {
                     string logContent = log.GetContent(showTime);
-
-                    try
+                    if (string.IsNullOrEmpty(logContent))
                     {
-                        if (Regex.IsMatch(logContent, searchText))
+                        return false;
+                    }
+
+                    string input = logContent.ToLower();
+                    string pattern = searchText.ToLower();
+                    if(searchWithRegex)
+                    {
+                        try
                         {
-                            return true;
-                        }
-                        else
-                        {
-                            string input = logContent.ToLower();
-                            string pattern = searchText.ToLower();
-                            if(Regex.IsMatch(input, pattern))
+                            if (Regex.IsMatch(logContent, searchText))
                             {
                                 return true;
                             }
                             else
                             {
-                                return input.Contains(pattern);
+                                if (Regex.IsMatch(input, pattern))
+                                {
+                                    return true;
+                                }
+                                else
+                                {
+                                    return input.Contains(pattern);
+                                }
                             }
                         }
+                        catch
+                        {
+                            /// 正则表达式匹配出现错误，则使用普通匹配
+                            return input.Contains(pattern);
+                        }
                     }
-                    catch
+                    else
                     {
-                        string input = logContent.ToLower();
-                        string pattern = searchText.ToLower();
                         return input.Contains(pattern);
                     }
                 }

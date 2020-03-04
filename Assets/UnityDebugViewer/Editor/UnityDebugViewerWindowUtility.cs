@@ -21,14 +21,21 @@ namespace UnityDebugViewer
 
             // Handle custom copy-paste
             value = HandleCopyPaste(textFieldID) ?? value;
+            
+            string text = GUILayout.TextField(value, style, options);
 
-            return GUILayout.TextField(value, style, options);
+            if (GUILayout.Button("", UnityDebugViewerWindowStyleUtility.toolbarCancelButtonStyle))
+            {
+                text = string.Empty;
+            }
+
+            return text;
         }
         public static string HandleCopyPaste(int controlID)
         {
+            EventType eventType = Event.current.GetTypeForControl(controlID);
             if (controlID == GUIUtility.keyboardControl)
             {
-                EventType eventType = Event.current.GetTypeForControl(controlID);
 #if UNITY_5 || UNITY_5_2_OR_NEWER
                 if (eventType == EventType.KeyUp && (Event.current.modifiers == EventModifiers.Control || Event.current.modifiers == EventModifiers.Command))
 #else
@@ -71,7 +78,16 @@ namespace UnityDebugViewer
 #endif
                     }
                 }
+#if UNITY_5_3_OR_NEWER || UNITY_5_3
+                else if (eventType == EventType.Ignore)
+#else
+                else if (eventType == EventType.ignore)
+#endif
+                {
+                    GUI.FocusControl(null);
+                }
             }
+
             return null;
         }
 

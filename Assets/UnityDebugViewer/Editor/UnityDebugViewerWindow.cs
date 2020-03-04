@@ -48,6 +48,7 @@ namespace UnityDebugViewer
         private const string ErrorPausePref = "UNITY_DEBUG_VIEWER_WINDOW_ERROR_PAUSE";
         private const string AutoScrollPref = "UNITY_DEBUG_VIEWER_WINDOW_AUTO_SCROLL";
         private const string ShowAnalysisPref = "UNITY_DEBUG_VIEWER_SHOW_LOG_ANALYSIS";
+        private const string SearchWithRegexPref = "UNITY_DEBUG_VIEWER_WINDOW_SEARCH_WITH_REGEX";
         private const string ShowTimePref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_TIME";
         private const string ShowLogPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_LOG";
         private const string ShowWarningPref = "UNITY_DEBUG_VIEWER_WINDOW_SHOW_WARNING";
@@ -59,6 +60,7 @@ namespace UnityDebugViewer
         public static bool errorPause = false;
         public static bool autoScroll = false;
         public static bool showlogAnalysis = false;
+        public static bool searchWithRegex = false;
         public static bool showTime = false;
         public static bool showLog = false;
         public static bool showWarning = false;
@@ -141,6 +143,7 @@ namespace UnityDebugViewer
             autoScroll = PlayerPrefs.GetInt(AutoScrollPref, 0) == 1;
             showlogAnalysis = PlayerPrefs.GetInt(ShowAnalysisPref, 0) == 1;
 
+            searchWithRegex = PlayerPrefs.GetInt(SearchWithRegexPref, 0) == 1;
             showTime = PlayerPrefs.GetInt(ShowTimePref, 0) == 1;
             showLog = PlayerPrefs.GetInt(ShowLogPref, 0) == 1;
             showWarning = PlayerPrefs.GetInt(ShowWarningPref, 0) == 1;
@@ -253,11 +256,8 @@ namespace UnityDebugViewer
 
                     GUILayout.FlexibleSpace();
 
+                    
                     string tempSearchText = UnityDebugViewerWindowUtility.CopyPasteTextField(this.searchText, UnityDebugViewerWindowStyleUtility.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
-                    if (GUILayout.Button("", UnityDebugViewerWindowStyleUtility.toolbarCancelButtonStyle))
-                    {
-                        tempSearchText = string.Empty;
-                    }
                     if (tempSearchText.Equals(this.searchText) == false)
                     {
                         this.searchText = tempSearchText;
@@ -270,17 +270,20 @@ namespace UnityDebugViewer
                     string errorNum = this.editorManager.activeEditor.errorNum.ToString();
 
                     EditorGUI.BeginChangeCheck();
+                    searchWithRegex = GUILayout.Toggle(searchWithRegex, new GUIContent("Regex"), EditorStyles.toolbarButton);
                     showTime = GUILayout.Toggle(showTime, new GUIContent("Time"), EditorStyles.toolbarButton);
                     showLog = GUILayout.Toggle(showLog, new GUIContent(logNum, UnityDebugViewerWindowStyleUtility.infoIconSmallTexture), EditorStyles.toolbarButton);
                     showWarning = GUILayout.Toggle(showWarning, new GUIContent(warningNum, UnityDebugViewerWindowStyleUtility.warningIconSmallTexture), EditorStyles.toolbarButton);
                     showError = GUILayout.Toggle(showError, new GUIContent(errorNum, UnityDebugViewerWindowStyleUtility.errorIconSmallTexture), EditorStyles.toolbarButton);
                     if (EditorGUI.EndChangeCheck())
                     {
+                        PlayerPrefs.SetInt(SearchWithRegexPref, searchWithRegex ? 1 : 0);
                         PlayerPrefs.SetInt(ShowTimePref, showTime ? 1 : 0);
                         PlayerPrefs.SetInt(ShowLogPref, showLog ? 1 : 0);
                         PlayerPrefs.SetInt(ShowWarningPref, showWarning ? 1 : 0);
                         PlayerPrefs.SetInt(ShowErrorPref, showError ? 1 : 0);
 
+                        this.logFilter.searchWithRegex = searchWithRegex;
                         this.logFilter.showTime = showTime;
                         this.logFilter.showLog = showLog;
                         this.logFilter.showWarning = showWarning;
@@ -492,6 +495,8 @@ namespace UnityDebugViewer
                     {
                         this.editorManager.activeEditor.selectedLogIndex = Mathf.Clamp(selectedIndex, 0, this.logList.Count - 1);
 
+                        MoveToSpecificLogBox(this.editorManager.activeEditor.selectedLogIndex);
+
                         Event.current.Use();
                     }
                 }
@@ -538,10 +543,6 @@ namespace UnityDebugViewer
                     GUILayout.FlexibleSpace();
 
                     string tempSearchText = UnityDebugViewerWindowUtility.CopyPasteTextField(this.analysisSearchText, UnityDebugViewerWindowStyleUtility.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
-                    if (GUILayout.Button("", UnityDebugViewerWindowStyleUtility.toolbarCancelButtonStyle))
-                    {
-                        tempSearchText = string.Empty;
-                    }
                     if (tempSearchText.Equals(this.analysisSearchText) == false)
                     {
                         this.analysisSearchText = tempSearchText;

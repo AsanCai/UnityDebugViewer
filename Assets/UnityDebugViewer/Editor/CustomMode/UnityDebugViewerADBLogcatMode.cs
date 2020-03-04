@@ -62,7 +62,7 @@ namespace UnityDebugViewer
             startLogcatProcess = false;
         }
 
-        private static void LogcatDataHandler(object sender, DataReceivedEventArgs outputLine)
+        private void LogcatDataHandler(object sender, DataReceivedEventArgs outputLine)
         {
             AddLogcatLog(outputLine.Data);
         }
@@ -71,43 +71,101 @@ namespace UnityDebugViewer
         /// Regular expression for the stack message gathered from logcat process
         /// </summary>
         private const string LOGCAT_REGEX = @"(?<date>[\d]+-[\d]+)[\s]*(?<time>[\d]+:[\d]+:[\d]+.[\d]+)[\s]*(?<logType>\w)/(?<filter>[\w]*)[\s]*\([\s\d]*\)[\s:]*";
+
+        private const string LOGCAT_STACK_REGEX = @"(?<className>[\w]+(\.[\<\>\w\s\,\`]+)*)[\s]*:[\s]*(?<methodName>[\<\>\w\s\,\`\.]+\([\w\s\,\[\]\<\>\&\*\`]*\))\s*";
+
+        private bool newLogStart = false;
+        private bool logStackStart = false;
+        
+        private LogType type;
+        private string time;
+        private string info;
+        private string stack;
+
         /// <summary>
         /// Add log to the UnityDebugViewerEditor correspond to 'ADBLogcat'
         /// </summary>
         /// <param name="logcat"></param>
-        private static void AddLogcatLog(string logcat)
+        private void AddLogcatLog(string logcat)
         {
-            if (Regex.IsMatch(logcat, LOGCAT_REGEX))
+            if (string.IsNullOrEmpty(logcat))
             {
-                string editorMode = UnityDebugViewerDefaultMode.ADBLogcat;
+                return;
+            }
 
-                var match = Regex.Match(logcat, LOGCAT_REGEX);
-                string logType = match.Result("${logType}").ToUpper();
-                string time = match.Result("${time}");
-                string info = Regex.Replace(logcat, LOGCAT_REGEX, "");
-                string extraInfo = string.Empty;
-                string stackMessage = string.Empty;
-                List<LogStackData> stackList = new List<LogStackData>();
+            var match = Regex.Match(logcat, LOGCAT_REGEX);
+            if (match.Success == false)
+            {
+                return;
+            }
 
-                LogType type;
-                switch (logType)
+            string editorMode = UnityDebugViewerDefaultMode.ADBLogcat;
+            
+            string message = Regex.Replace(logcat, LOGCAT_REGEX, "").Trim();
+
+            if (newLogStart)
+            {
+                /// 避免出现中间有多个空行的情况
+                if (string.IsNullOrEmpty(message) == false)
                 {
-                    case "I":
-                        type = LogType.Log;
-                        break;
-                    case "W":
-                        type = LogType.Warning;
-                        break;
-                    case "E":
-                        type = LogType.Error;
-                        break;
-                    default:
-                        type = LogType.Error;
-                        break;
-                }
+                    newLogStart = false;
 
-                var log = new LogData(info, extraInfo, stackMessage, stackList, time, type);
-                UnityDebugViewerLogger.AddLog(log, editorMode);
+                    string logType = match.Result("${logType}").ToUpper();
+                    switch (logType)
+                    {
+                        case "I":
+                            type = LogType.Log;
+                            break;
+                        case "W":
+                            type = LogType.Warning;
+                            break;
+                        case "E":
+                            type = LogType.Error;
+                            break;
+                        default:
+                            type = LogType.Error;
+                            break;
+                    }
+
+                    time = match.Result("${time}");
+                    info = message;
+                    stack = string.Empty;
+                }
+            }
+            else
+            {
+                /// log结束
+                if (string.IsNullOrEmpty(message))
+                {
+                    newLogStart = true;
+                    logStackStart = false;
+
+                    var log = new LogData(info, stack, time, type);
+                    UnityDebugViewerLogger.AddLog(log, editorMode);
+                }
+                else 
+                {
+                    /// 读到堆栈信息
+                    if(Regex.IsMatch(message, LOGCAT_STACK_REGEX))
+                    {
+                        if(logStackStart == false)
+                        {
+                            stack = string.Format("{0}\n{1}", stack, message);
+                        }
+                        else
+                        {
+                            logStackStart = true;
+                            stack = message;
+                        }
+                    }
+                    else
+                    {
+                        if(logStackStart == false)
+                        {
+                            info = string.Format("{0}\n{1}", info, message);
+                        }
+                    }
+                }
             }
         }
 
