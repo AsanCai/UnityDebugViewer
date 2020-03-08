@@ -49,12 +49,12 @@ namespace UnityDebugViewer
 
         private void StartADBLogcat()
         {
-            string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
-            if (UnityDebugViewerWindowUtility.CheckADBStatus(adbPath) == false)
+            if (UnityDebugViewerWindowUtility.CheckADBStatus() == false)
             {
                 return;
             }
 
+            string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
             startLogcatProcess = UnityDebugViewerADBUtility.StartLogcatProcess(LogcatDataHandler, logcatTagFilterStr, adbPath);
         }
 

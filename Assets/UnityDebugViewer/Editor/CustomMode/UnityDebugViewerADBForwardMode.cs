@@ -77,12 +77,12 @@ namespace UnityDebugViewer
 
         private void StartADBForward()
         {
-            string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
-            if (UnityDebugViewerWindowUtility.CheckADBStatus(adbPath) == false)
+            if (UnityDebugViewerWindowUtility.CheckADBStatus() == false)
             {
                 return;
             }
 
+            string adbPath = UnityDebugViewerWindowUtility.GetAdbPath();
             startForwardProcess = UnityDebugViewerADBUtility.StartForwardProcess(pcPort, phonePort, adbPath);
             if (startForwardProcess)
             {

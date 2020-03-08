@@ -268,8 +268,10 @@ namespace UnityDebugViewer
             scrollPos.y -= moveDistacne;
         }
 
-        public static bool CheckADBStatus(string adbPath)
+        public static bool CheckADBStatus()
         {
+            string adbPath = GetAdbPath();
+
             if (string.IsNullOrEmpty(adbPath))
             {
                 EditorUtility.DisplayDialog("Unity Debug Viewer", "Cannot find adb path", "OK");

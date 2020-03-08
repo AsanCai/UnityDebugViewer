@@ -297,43 +297,44 @@ namespace UnityDebugViewer
                 return;
             }
 
+            this.sourceContent = String.Empty;
+
             this.className = match.Result("${className}");
             this.methodName = match.Result("${methodName}");
             
+
             this.filePath = UnityDebugViewerEditorUtility.ConvertToSystemFilePath(match.Result("${filePath}"));
             string lineNumberStr = match.Result("${lineNumber}");
             int lineNumber;
             this.lineNumber = int.TryParse(lineNumberStr, out lineNumber) ? lineNumber : -1;
 
-            if (this.className.Equals("${className}") || this.methodName.Equals("${methodName}"))
-            {
-                if (this.className.Equals("${className}"))
-                {
-                    this.className = "UnknowClass";
-                }
 
-                if (this.methodName.Equals("${methodName}"))
-                {
-                    this.methodName = "UnknowMethod()";
-                }
-
-                this.fullStackMessage = string.Format("{0}:{1} (at {2}:{3})", this.className, this.methodName, this.filePath, this.lineNumber);
-            }
-            else if (this.filePath.Equals("${filePath}") || this.lineNumber == -1)
+            if (this.filePath.Equals("${filePath}") || this.lineNumber == -1)
             {
                 this.fullStackMessage = string.Format("{0}:{1}", this.className, this.methodName);
             }
             else
             {
+                if (this.className.Equals("${className}") || this.methodName.Equals("${methodName}"))
+                {
+                    if (this.className.Equals("${className}"))
+                    {
+                        this.className = "UnknowClass";
+                    }
+
+                    if (this.methodName.Equals("${methodName}"))
+                    {
+                        this.methodName = "UnknowMethod()";
+                    }
+                }
+
+                if (this.methodName.Contains("(") == false)
+                {
+                    this.methodName += "()";
+                }
+
                 this.fullStackMessage = string.Format("{0}:{1} (at {2}:{3})", this.className, this.methodName, this.filePath, this.lineNumber);
             }
-
-            if (this.methodName.Contains("(") == false)
-            {
-                this.methodName += "()";
-            }
-
-            this.sourceContent = String.Empty;
         }
 
         public LogStackData(StackFrame stackFrame)

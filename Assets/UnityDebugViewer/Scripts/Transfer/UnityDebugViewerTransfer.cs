@@ -20,9 +20,22 @@ namespace UnityDebugViewer
         private int receiveLength;
         private Thread connectThread;
 
+        /// <summary>
+        /// 与服务器断开链接的回调事件
+        /// </summary>
         public event DisconnectHandler disconnectToServerEvent;
+        /// <summary>
+        /// 与客户端断开链接的回调事件
+        /// </summary>
         public event DisconnectHandler disconnectToClientrEvent;
+        /// <summary>
+        /// 收到服务器下发的数据的回调事件
+        /// </summary>
         public event ReceiveDataHandler receiveDaraFromServerEvent;
+        /// <summary>
+        /// 收到客户端上传的数据的回调事件
+        /// </summary>
+        public event ReceiveDataHandler receiveDaraFromClientEvent;
 
         public void ConnectToServer(string ip, int port)
         {
@@ -128,6 +141,14 @@ namespace UnityDebugViewer
                 {
                     ConnectToClientSocket();
                     continue;
+                }
+
+                byte[] receivedBytes = new byte[receiveLength];
+                Array.Copy(receiveBuffer, receivedBytes, receiveLength);
+
+                if (receiveDaraFromClientEvent != null)
+                {
+                    receiveDaraFromClientEvent(receivedBytes);
                 }
             }
         }

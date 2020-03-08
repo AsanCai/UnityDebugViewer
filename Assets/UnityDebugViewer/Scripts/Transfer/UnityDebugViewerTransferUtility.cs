@@ -9,6 +9,7 @@ namespace UnityDebugViewer
         public static event DisconnectHandler disconnectToServerEvent;
         public static event DisconnectHandler disconnectToClientrEvent;
         public static event ReceiveDataHandler receiveDaraFromServerEvent;
+        public static event ReceiveDataHandler receiveDaraFromClientEvent;
 
         private static UnityDebugViewerTransfer transferInstance = null;
 
@@ -20,6 +21,7 @@ namespace UnityDebugViewer
                 transferInstance.disconnectToServerEvent += disconnectToServerEvent;
                 transferInstance.disconnectToClientrEvent += disconnectToClientrEvent;
                 transferInstance.receiveDaraFromServerEvent += receiveDaraFromServerEvent;
+                transferInstance.receiveDaraFromClientEvent += receiveDaraFromClientEvent;
             }
 
             transferInstance.ConnectToServer(ip, port);
@@ -33,6 +35,7 @@ namespace UnityDebugViewer
                 transferInstance.disconnectToServerEvent += disconnectToServerEvent;
                 transferInstance.disconnectToClientrEvent += disconnectToClientrEvent;
                 transferInstance.receiveDaraFromServerEvent += receiveDaraFromServerEvent;
+                transferInstance.receiveDaraFromClientEvent += receiveDaraFromClientEvent;
             }
 
             transferInstance.CreateServerSocket(port);
