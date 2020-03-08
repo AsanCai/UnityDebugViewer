@@ -92,6 +92,16 @@ namespace UnityDebugViewer
             }
         }
 
+        private static UnityDebugViewerEditor _activeEditor;
+        /// <summary>
+        /// May return null
+        /// </summary>
+        /// <returns></returns>
+        public static UnityDebugViewerEditor GetActiveEditor()
+        {
+            return _activeEditor;
+        }
+
         private static UnityDebugViewerEditor _editorForceToActive = null;
         public UnityDebugViewerEditor activeEditor
         {
@@ -101,7 +111,7 @@ namespace UnityDebugViewer
                 string mode = activeMode;
 
                 /// 查看是否需要强制激活其他的mode
-                if(_editorForceToActive != null)
+                if(_editorForceToActive != null && string.IsNullOrEmpty(_editorForceToActive.mode) == false)
                 {
                     for(int i = 0;i < modeList.Count; i++)
                     {
@@ -115,7 +125,8 @@ namespace UnityDebugViewer
                     _editorForceToActive = null;
                 }
 
-                return GetEditor(mode);
+                _activeEditor = GetEditor(mode);
+                return _activeEditor;
             }
         }
 

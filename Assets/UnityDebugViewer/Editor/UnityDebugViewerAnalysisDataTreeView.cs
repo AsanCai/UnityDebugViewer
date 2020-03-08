@@ -116,6 +116,28 @@ namespace UnityDebugViewer
             return 1.5f * EditorGUIUtility.singleLineHeight;
         }
 
+        public void MoveToSelectedNode(Rect panelRect, ref Vector2 scrollPos)
+        {
+            if(_selectedNode == null)
+            {
+                return;
+            }
+            
+            /// make all selected node's parent expanded
+            UnityDebugViewerAnalysisDataTreeItem parent = _selectedNode.Parent;
+            while(parent != null && parent.Data != null)
+            {
+                parent.Data.isExpanded = true;
+                parent = parent.Parent;
+            }
+
+            /// get selcted node's row
+            DrawTreeLayout(panelRect, ref scrollPos);
+
+            _changeSelectedRow = true;
+            _selectedRow = _selectedNode.Row;
+        }
+
         protected virtual bool OnGetLayoutHeight(UnityDebugViewerAnalysisDataTreeItem node)
         {
             if (UnityDebugViewerAnalysisData.IsNullOrEmpty(node.Data) || node.Data.isVisible == false)

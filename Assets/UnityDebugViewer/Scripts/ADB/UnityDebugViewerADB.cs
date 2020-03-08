@@ -38,9 +38,7 @@ namespace UnityDebugViewer
                 {
                     /// 执行adb进程
                     logCatProcess = Process.Start(logProcessInfo);
-                    logCatProcess.ErrorDataReceived += processDataHandler;
                     logCatProcess.OutputDataReceived += processDataHandler;
-                    logCatProcess.BeginErrorReadLine();
                     logCatProcess.BeginOutputReadLine();
                     return true;
                 }
@@ -194,6 +192,7 @@ namespace UnityDebugViewer
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
                 FileName = adbPath,
                 WindowStyle = ProcessWindowStyle.Hidden,
                 Arguments = command

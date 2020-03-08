@@ -53,7 +53,7 @@ namespace UnityDebugViewer {
 
         public void Search(string searchText)
         {
-            if(this.searchText.Equals(searchText))
+            if(string.IsNullOrEmpty(this.searchText) == false && this.searchText.Equals(searchText))
             {
                 return;
             }

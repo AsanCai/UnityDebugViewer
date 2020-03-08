@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -60,11 +61,6 @@ namespace UnityDebugViewer
                 else
                 {
                     string logContent = log.GetContent(showTime);
-                    if (string.IsNullOrEmpty(logContent))
-                    {
-                        return false;
-                    }
-
                     string input = logContent.ToLower();
                     string pattern = searchText.ToLower();
                     if(searchWithRegex)
@@ -417,6 +413,40 @@ namespace UnityDebugViewer
             {
                 filteredLogList.Add(log);
             }
+        }
+
+        public bool SaveLogToFile(string filePath, bool saveFilteredLog)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                return false;
+            }
+
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+
+            string content = string.Empty;
+            for (int i = 0; i < logList.Count; i++)
+            {
+                var log = logList[i];
+                if (log == null)
+                {
+                    continue;
+                }
+
+                if (saveFilteredLog && logFilter.ShouldDisplay(log) == false)
+                {
+                    continue;
+                }
+
+                content = string.Format("{0}\n{1}\n", content, log.ToString());
+            }
+
+            File.WriteAllText(filePath, content);
+
+            return true;
         }
 
         void ISerializationCallbackReceiver.OnBeforeSerialize()

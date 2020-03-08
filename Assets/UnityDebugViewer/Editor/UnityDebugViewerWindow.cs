@@ -82,6 +82,7 @@ namespace UnityDebugViewer
 
         private int preLogNum = 0;
         private string searchText = string.Empty;
+        private bool clearSearchText = false;
 
         private Vector2 upperPanelScrollPos;
         private Vector2 stackPanelScrollPos;
@@ -110,6 +111,9 @@ namespace UnityDebugViewer
                 menu.AddItem(new GUIContent(string.Format("Log Entry/{0} {1}", i, lineString)), i == logLineCount, SetLogLineCount, i);
             }
 
+            menu.AddItem(new GUIContent("Save Log/Save All Logs"), false, SaveLog, false);
+            menu.AddItem(new GUIContent("Save Log/Save Filtered Logs"), false, SaveLog, true);
+
             menu.AddItem(new GUIContent("About UnityDebugViewer"), false, ClickHelpBtn, null);
         }
 
@@ -123,6 +127,29 @@ namespace UnityDebugViewer
         private static void ClickHelpBtn(object obj)
         {
             Application.OpenURL("https://github.com/AsanCai/UnityDebugViewer");
+        }
+
+        private static void SaveLog(object obj)
+        {
+            string filePath = UnityDebugViewerWindowUtility.GetSelectedFilePath();
+            if (string.IsNullOrEmpty(filePath))
+            {
+                return;
+            }
+
+            var editor = UnityDebugViewerEditorManager.GetActiveEditor();
+            if(editor == null)
+            {
+                return;
+            }
+
+            bool saveFileterLog = (bool)obj;
+            GUI.enabled = false;
+            if(editor.SaveLogToFile(filePath, saveFileterLog))
+            {
+                EditorUtility.DisplayDialog("UnityDebugViewer", string.Format("Save Log to {0} sucecessfully", filePath), "OK", "");
+            }
+            GUI.enabled = true;
         }
 
         private void Awake()
@@ -260,6 +287,8 @@ namespace UnityDebugViewer
                     string tempSearchText = UnityDebugViewerWindowUtility.CopyPasteTextField(this.searchText, UnityDebugViewerWindowStyleUtility.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
                     if (tempSearchText.Equals(this.searchText) == false)
                     {
+                        this.clearSearchText = string.IsNullOrEmpty(tempSearchText) && string.IsNullOrEmpty(this.searchText) == false;
+
                         this.searchText = tempSearchText;
                         this.logFilter.searchText = this.searchText;
                         this.shouldUpdateLogFilter = true;
@@ -331,6 +360,13 @@ namespace UnityDebugViewer
                             {
                                 DrawLogBox(log, logBoxRect, i, collapse);
                             }
+                        }
+
+                        /// auto move to selected log when clear search text
+                        if (this.clearSearchText)
+                        {
+                            MoveToSpecificLogBox(this.editorManager.activeEditor.selectedLogIndex);
+                            this.clearSearchText = false;
                         }
 
                         /// if "Auto Scroll" is selected, then force scroll to the bottom when new log is added
@@ -476,7 +512,7 @@ namespace UnityDebugViewer
             else if (eventType == EventType.keyUp)
 #endif
             {
-                if(this.logBoxControlID == UnityDebugViewerWindowUtility.activeControlID)
+                if (this.logBoxControlID == UnityDebugViewerWindowUtility.activeControlID)
                 {
                     bool changeSelectedLog = false;
                     int selectedIndex = this.editorManager.activeEditor.selectedLogIndex;
@@ -545,8 +581,15 @@ namespace UnityDebugViewer
                     string tempSearchText = UnityDebugViewerWindowUtility.CopyPasteTextField(this.analysisSearchText, UnityDebugViewerWindowStyleUtility.toolbarSearchTextStyle, GUILayout.MinWidth(180f), GUILayout.MaxWidth(300f));
                     if (tempSearchText.Equals(this.analysisSearchText) == false)
                     {
+                        /// update search result first
+                        this.editorManager.activeEditor.analysisDataManager.Search(tempSearchText);
+
+                        if (string.IsNullOrEmpty(tempSearchText) && string.IsNullOrEmpty(this.analysisSearchText) == false)
+                        {
+                            analysisDataTreeView.MoveToSelectedNode(analysisRect, ref this.analysisPanelScrollPos);
+                        }
                         this.analysisSearchText = tempSearchText;
-                        this.editorManager.activeEditor.analysisDataManager.Search(this.analysisSearchText);
+                        
                     }
                 }
                 GUILayout.EndHorizontal();

@@ -67,7 +67,8 @@ namespace UnityDebugViewer
         /// Regular expression for the log from log file
         /// </summary>
         private const string LOG_FILE_TYPE_AND_TIME_REGEX = @"(?m)(^\[(?<logType>[\w]+)\][\s]*(?<time>[\d]+:[\d]+:[\d]+\.[\d]+))(\|[\d]+)?";
-        private const string LOG_FILE_STACK_REGEX = @"(?m)^(?<className>[\w]+(\.[\<\>\w\s\,\`]+)*)[\s]*:[\s]*(?<methodName>[\<\>\w\s\,\`\.]+\([\w\s\,\[\]\<\>\&\*\`]*\))\r*$";
+        //private const string LOG_FILE_STACK_REGEX = @"(?m)^(?<className>[\w]+(\.[\<\>\w\s\,\`]+)*)[\s]*:[\s]*(?<methodName>[\<\>\w\s\,\`\.]+\([\w\s\,\[\]\<\>\&\*\`]*\))\r*$";
+
         /// <summary>
         /// Add log to the UnityDebugViewerEditor correspond to 'ADBLogcat'
         /// </summary>
@@ -99,7 +100,7 @@ namespace UnityDebugViewer
                 }
 
                 string preProcessedStr = Regex.Replace(logStr, LOG_FILE_TYPE_AND_TIME_REGEX, "").Trim();
-                string info = Regex.Replace(preProcessedStr, LOG_FILE_STACK_REGEX, "").Trim();
+                string info = Regex.Replace(preProcessedStr, LogData.UNITY_STACK_REGEX, "").Trim();
                 string extraInfo = string.Empty;
                 string stackMessage = string.Empty;
                 List<LogStackData> stackList = new List<LogStackData>();
@@ -107,11 +108,18 @@ namespace UnityDebugViewer
                 if (string.IsNullOrEmpty(info) == false)
                 {
                     stackMessage = preProcessedStr.Replace(info, "").Trim();
-                    match = Regex.Match(stackMessage, LOG_FILE_STACK_REGEX);
+                    match = Regex.Match(stackMessage, LogData.UNITY_STACK_REGEX);
                     while (match.Success)
                     {
                         stackList.Add(new LogStackData(match));
                         match = match.NextMatch();
+                    }
+
+                    if(stackList.Count > 0 && stackList[0].lineNumber == -1)
+                    {
+                        var stackData = stackList[0];
+                        stackList.RemoveAt(0);
+                        extraInfo = stackData.ToString();
                     }
                 }
 

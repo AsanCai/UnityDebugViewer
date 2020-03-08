@@ -9,10 +9,9 @@ namespace UnityDebugViewer
         {
             for (int i = 0; i < 5000; i++)
             {
-                Debug.LogFormat("pass {0}s;", i);
+                Debug.LogFormat("Test Log {0};", i);
             }
         }
-
 
         void Update()
         {

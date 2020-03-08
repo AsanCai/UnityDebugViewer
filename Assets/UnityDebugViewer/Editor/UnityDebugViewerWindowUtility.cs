@@ -316,6 +316,7 @@ namespace UnityDebugViewer
 
                 string currentScriptDirectory = Path.GetDirectoryName(filePath);
                 string parentDirectory = Directory.GetParent(currentScriptDirectory).FullName;
+                parentDirectory = Directory.GetParent(parentDirectory).FullName;
 
                 string defaultAdbPath = UnityDebugViewerEditorUtility.ConvertToSystemFilePath(UnityDebugViewerADBUtility.DEFAULT_ADB_PATH);
 
@@ -323,6 +324,16 @@ namespace UnityDebugViewer
             }
 
             return adbPath;
+        }
+
+        
+        public static string GetSelectedFilePath()
+        {
+            string filePath = string.Empty;
+            string defaultName = string.Format("{0}_logfile.log", DateTime.Now.ToString("MMdd_HHmmss"));
+            filePath = EditorUtility.SaveFilePanel("Export log to file", Application.dataPath, defaultName, "log");
+
+            return filePath;
         }
     }
 }
