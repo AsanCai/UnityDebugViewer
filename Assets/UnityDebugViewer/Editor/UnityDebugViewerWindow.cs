@@ -1,6 +1,9 @@
-﻿using System.Diagnostics;
+﻿/// Copyright (C) 2020 AsanCai   
+/// All rights reserved
+/// Email: 969850420@qq.com
+
+
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
 

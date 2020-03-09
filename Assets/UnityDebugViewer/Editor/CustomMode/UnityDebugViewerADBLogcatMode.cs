@@ -1,10 +1,12 @@
-﻿using System.Diagnostics;
+﻿/// Copyright (C) 2020 AsanCai   
+/// All rights reserved
+/// Email: 969850420@qq.com
+
+using System.Diagnostics;
 using System.Text.RegularExpressions;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System.Text;
-using System;
 
 namespace UnityDebugViewer
 {

@@ -1,5 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿/// Copyright (C) 2020 AsanCai   
+/// All rights reserved
+/// Email: 969850420@qq.com
+
+
 using UnityEngine;
 using UnityEditor;
 
