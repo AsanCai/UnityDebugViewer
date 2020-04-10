@@ -249,6 +249,8 @@ namespace UnityDebugViewer
                 return _mode;
             }
         }
+
+        [SerializeField]
         public UnityDebugViewerIntermediaryEditor intermediaryEditor;
 
         [SerializeField]

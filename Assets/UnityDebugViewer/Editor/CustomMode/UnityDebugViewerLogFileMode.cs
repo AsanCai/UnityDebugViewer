@@ -2,6 +2,7 @@
 /// All rights reserved
 /// Email: 969850420@qq.com
 
+using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -10,9 +11,10 @@ using UnityEditor;
 
 namespace UnityDebugViewer
 {
+    [Serializable]
     public class UnityDebugViewerLogFileMode : UnityDebugViewerIntermediaryEditor
     {
-        private string logFilePath = string.Empty;
+        [SerializeField] private string logFilePath = string.Empty;
 
         [InitializeOnLoadMethod]
         private static void InitializeLogFileMode()

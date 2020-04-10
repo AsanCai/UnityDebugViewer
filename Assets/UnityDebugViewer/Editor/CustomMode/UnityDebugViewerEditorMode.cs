@@ -2,11 +2,13 @@
 /// All rights reserved
 /// Email: 969850420@qq.com
 
+using System;
 using UnityEngine;
 using UnityEditor;
 
 namespace UnityDebugViewer
 {
+    [Serializable]
     public class UnityDebugViewerEditorMode : UnityDebugViewerIntermediaryEditor
     {
         /// <summary>
@@ -16,9 +18,19 @@ namespace UnityDebugViewer
         private static void InitializeEditorMode()
         {
             UnityDebugViewerEditorManager.RegisterMode<UnityDebugViewerEditorMode>(UnityDebugViewerDefaultMode.Editor, 0);
+        }
 
+
+        public override void OnEditorEnable()
+        {
+            /// 打开Window的时候
             Application.logMessageReceivedThreaded -= LogMessageReceivedHandler;
             Application.logMessageReceivedThreaded += LogMessageReceivedHandler;
+        }
+
+        public override void OnEditorDisable()
+        {
+            Application.logMessageReceivedThreaded -= LogMessageReceivedHandler;
         }
 
         public override void Clear()

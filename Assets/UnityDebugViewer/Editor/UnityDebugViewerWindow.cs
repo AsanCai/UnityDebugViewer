@@ -186,6 +186,7 @@ namespace UnityDebugViewer
             logFilter.searchText = searchText;
             shouldUpdateLogFilter = true;
 
+            editorManager.OnEnable();
             analysisDataTreeView = new UnityDebugViewerAnalysisDataTreeView(this.editorManager.activeEditor.analysisDataManager.root);
 
 #if UNITY_2017_2_OR_NEWER
@@ -193,6 +194,11 @@ namespace UnityDebugViewer
 #else
             EditorApplication.playmodeStateChanged += PlayModeStateChangeHandler;
 #endif
+        }
+
+        private void OnDisable()
+        {
+            editorManager.OnDisable();
         }
 
         private void OnDestroy()

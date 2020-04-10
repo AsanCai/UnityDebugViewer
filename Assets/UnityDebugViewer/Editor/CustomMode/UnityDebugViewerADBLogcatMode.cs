@@ -2,6 +2,7 @@
 /// All rights reserved
 /// Email: 969850420@qq.com
 
+using System;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -10,10 +11,11 @@ using System.Text;
 
 namespace UnityDebugViewer
 {
+    [Serializable]
     public class UnityDebugViewerADBLogcatMode : UnityDebugViewerIntermediaryEditor
     {
-        private string logcatTagFilterStr = "Unity";
-        private bool startLogcatProcess = false;
+        [SerializeField] private string logcatTagFilterStr = "Unity";
+        [SerializeField] private bool startLogcatProcess = false;
 
         [InitializeOnLoadMethod]
         private static void InitializeADBLogcatMode()
@@ -78,19 +80,20 @@ namespace UnityDebugViewer
 
         private const string LOGCAT_UNITY_STACK_REGEX = @"(?<className>[\w]+(\.[\<\>\w\s\,\`]+)*)[\s]*:[\s]*(?<methodName>[\<\>\w\s\,\`\.]+\([\w\s\,\[\]\<\>\&\*\`]*\))\s*";
 
-        private bool isCollectingInfo = false;
-        private bool isCollectingStack = false;
 
-        private string collectedInfo = string.Empty;
-        private string collectedStack = string.Empty;
-        private string collectedTime = string.Empty;
-        private LogType collectingType;
+        [SerializeField] private bool isCollectingInfo = false;
+        [SerializeField] private bool isCollectingStack = false;
 
-        private string preLogLevel = string.Empty;
-        private string preLogFilter = string.Empty;
-        private string preTime = string.Empty;
-        private string prePID = string.Empty;
-        private bool encounterEmpty = false;
+        [SerializeField] private string collectedInfo = string.Empty;
+        [SerializeField] private string collectedStack = string.Empty;
+        [SerializeField] private string collectedTime = string.Empty;
+        [SerializeField] private LogType collectingType;
+
+        [SerializeField] private string preLogLevel = string.Empty;
+        [SerializeField] private string preLogFilter = string.Empty;
+        [SerializeField] private string preTime = string.Empty;
+        [SerializeField] private string prePID = string.Empty;
+        [SerializeField] private bool encounterEmpty = false;
 
         /// <summary>
         /// Add log to the UnityDebugViewerEditor correspond to 'ADBLogcat'

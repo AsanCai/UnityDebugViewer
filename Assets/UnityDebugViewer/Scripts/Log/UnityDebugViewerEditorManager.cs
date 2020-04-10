@@ -55,6 +55,10 @@ namespace UnityDebugViewer
                 return _intermediaryEditorDic;
             }
         }
+        [SerializeField]
+        private List<string> serializeintermediaryEditorDicKeyList = new List<string>();
+        [SerializeField]
+        private List<UnityDebugViewerIntermediaryEditor> serializeintermediaryEditorDicValueList = new List<UnityDebugViewerIntermediaryEditor>();
 
         /// <summary>
         /// 用于绘制mode下拉框的数据
@@ -95,6 +99,32 @@ namespace UnityDebugViewer
                 return defaultMode;
             }
         }
+
+        #region 生命周期
+        public void OnEnable()
+        {
+            for(int i = 0; i < modeList.Count; i++)
+            {
+                var editor = GetEditor(modeList[i]).intermediaryEditor;
+                if(editor != null)
+                {
+                    editor.OnEditorEnable();
+                }
+            }
+        }
+        
+        public void OnDisable()
+        {
+            for (int i = 0; i < modeList.Count; i++)
+            {
+                var editor = GetEditor(modeList[i]).intermediaryEditor;
+                if (editor != null)
+                {
+                    editor.OnEditorDisable();
+                }
+            }
+        }
+        #endregion
 
         private static UnityDebugViewerEditor _activeEditor;
         /// <summary>
@@ -151,9 +181,9 @@ namespace UnityDebugViewer
             }
         }
         [SerializeField]
-        private List<string> serializeKeyList = new List<string>();
+        private List<string> serializeEditorDicKeyList = new List<string>();
         [SerializeField]
-        private List<UnityDebugViewerEditor> serializeValueList = new List<UnityDebugViewerEditor>();
+        private List<UnityDebugViewerEditor> serializeEditorDicValueList = new List<UnityDebugViewerEditor>();
 
         /// <summary>
         /// 使用string注册mode，并返回对应的UnityDebugViewerEditor实例
@@ -163,28 +193,31 @@ namespace UnityDebugViewer
         /// <returns></returns>
         public static void RegisterMode<T>(string mode, int order = int.MaxValue) where T : UnityDebugViewerIntermediaryEditor
         {
-            if(modeList.Contains(mode) == false)
+            /// 避免重复注册同名Mode
+            if(modeList.Contains(mode))
             {
-                int index = -1;
-                for(int i = 0;i < modeOrderList.Count; i++)
-                {
-                    if(order < modeOrderList[i])
-                    {
-                        index = i;
-                        break;
-                    }
-                }
+                return;
+            }
 
-                if(index >= 0)
+            int index = -1;
+            for (int i = 0; i < modeOrderList.Count; i++)
+            {
+                if (order < modeOrderList[i])
                 {
-                    modeOrderList.Insert(index, order);
-                    modeList.Insert(index, mode);
+                    index = i;
+                    break;
                 }
-                else
-                {
-                    modeOrderList.Add(order);
-                    modeList.Add(mode);
-                }
+            }
+
+            if (index >= 0)
+            {
+                modeOrderList.Insert(index, order);
+                modeList.Insert(index, mode);
+            }
+            else
+            {
+                modeOrderList.Add(order);
+                modeList.Add(mode);
             }
 
             UnityDebugViewerIntermediaryEditor intermediaryEditor = UnityDebugViewerEditorUtility.GetScriptableObjectInstance<T>();
@@ -220,7 +253,7 @@ namespace UnityDebugViewer
                 editorDic.Add(mode, editor);
             }
 
-            if (intermediaryEditorDic.ContainsKey(mode))
+            if (intermediaryEditorDic.ContainsKey(mode) && editor.intermediaryEditor == null)
             {
                 editor.intermediaryEditor = intermediaryEditorDic[mode];
             }
@@ -228,24 +261,51 @@ namespace UnityDebugViewer
             return editor;
         }
 
+        /// <summary>
+        /// 在RegisterMode方法之前执行
+        /// </summary>
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {
-            this.serializeKeyList.Clear();
-            this.serializeValueList.Clear();
+            this.serializeEditorDicKeyList.Clear();
+            this.serializeEditorDicValueList.Clear();
             foreach (var pair in editorDic)
             {
-                this.serializeKeyList.Add(pair.Key);
-                this.serializeValueList.Add(pair.Value);
+                this.serializeEditorDicKeyList.Add(pair.Key);
+                this.serializeEditorDicValueList.Add(pair.Value);
+            }
+
+
+            this.serializeintermediaryEditorDicKeyList.Clear();
+            this.serializeintermediaryEditorDicValueList.Clear();
+            foreach(var pair in intermediaryEditorDic)
+            {
+                this.serializeintermediaryEditorDicKeyList.Add(pair.Key);
+                this.serializeintermediaryEditorDicValueList.Add(pair.Value);
             }
         }
 
+        /// <summary>
+        /// 在RegisterMode方法之后执行
+        /// </summary>
         void ISerializationCallbackReceiver.OnAfterDeserialize()
         {
-            int count = Mathf.Min(this.serializeKeyList.Count, this.serializeValueList.Count);
+            int count = Mathf.Min(this.serializeEditorDicKeyList.Count, this.serializeEditorDicValueList.Count);
             editorDic.Clear();
             for (int i = 0; i < count; ++i)
             {
-                editorDic.Add(this.serializeKeyList[i], this.serializeValueList[i]);
+                editorDic.Add(this.serializeEditorDicKeyList[i], this.serializeEditorDicValueList[i]);
+            }
+
+            /// intermediaryEditorDic是在OnBeforeSerialize之后赋值的，因此不能清空
+            count = Mathf.Min(this.serializeintermediaryEditorDicKeyList.Count, this.serializeintermediaryEditorDicValueList.Count);
+            for(int i = 0;i < count; i++)
+            {
+                var key = this.serializeintermediaryEditorDicKeyList[i];
+                var value = this.serializeintermediaryEditorDicValueList[i];
+                if (intermediaryEditorDic.ContainsKey(key))
+                {
+                    intermediaryEditorDic[key] = value;
+                }
             }
         }
     }

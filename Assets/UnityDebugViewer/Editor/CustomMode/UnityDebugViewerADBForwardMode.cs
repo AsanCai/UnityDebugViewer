@@ -2,17 +2,19 @@
 /// All rights reserved
 /// Email: 969850420@qq.com
 
+using System;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
 
 namespace UnityDebugViewer
 {
+    [Serializable]
     public class UnityDebugViewerADBForwardMode : UnityDebugViewerIntermediaryEditor
     {
-        private string pcPort = string.Empty;
-        private string phonePort = string.Empty;
-        private bool startForwardProcess = false;
+        [SerializeField] private string pcPort = string.Empty;
+        [SerializeField] private string phonePort = string.Empty;
+        [SerializeField] private bool startForwardProcess = false;
 
         [InitializeOnLoadMethod]
         private static void InitializeADBForwardMode()
@@ -20,13 +22,13 @@ namespace UnityDebugViewer
             UnityDebugViewerEditorManager.RegisterMode<UnityDebugViewerADBForwardMode>(UnityDebugViewerDefaultMode.ADBForward, 1);
         }
 
-        private void Awake()
+        public override void OnEditorEnable()
         {
             UnityDebugViewerTransferUtility.disconnectToServerEvent += DisconnectToServerHandler;
             UnityDebugViewerTransferUtility.receiveDaraFromServerEvent += ReceiveDataFromServerHandler;
         }
 
-        private void OnDestroy()
+        public override void OnEditorDisable()
         {
             UnityDebugViewerTransferUtility.disconnectToServerEvent -= DisconnectToServerHandler;
             UnityDebugViewerTransferUtility.receiveDaraFromServerEvent -= ReceiveDataFromServerHandler;
