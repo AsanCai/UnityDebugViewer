@@ -41,7 +41,7 @@ namespace UnityDebugViewer
         {
             get
             {
-                return (logLineCount + 2) * EditorGUIUtility.singleLineHeight;
+                return (logLineCount + 1) * EditorGUIUtility.singleLineHeight;
             }
         }
 
