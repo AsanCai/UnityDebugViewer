@@ -4,7 +4,6 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
@@ -40,10 +39,14 @@ namespace UnityDebugViewer
             }
 
             var lineArray = File.ReadAllLines(validFilePath);
+            if(lineArray == null)
+            {
+                return string.Empty;
+            }
 
             int fileLineNumber = lineNumber - 1;
             int firstLine = Mathf.Max(fileLineNumber - DisplayLineNumber / 2, 0);
-            int lastLine = Mathf.Min(fileLineNumber + DisplayLineNumber / 2 + 1, lineArray.Count());
+            int lastLine = Mathf.Min(fileLineNumber + DisplayLineNumber / 2 + 1, lineArray.Length);
 
             string souceContent = string.Empty;
             if(firstLine != 0)
@@ -60,7 +63,7 @@ namespace UnityDebugViewer
 
                 souceContent += str;
             }
-            if(lastLine != lineArray.Count())
+            if(lastLine != lineArray.Length)
             {
                 souceContent = string.Format("{0}\n{1}", souceContent, EllipsisStr);
             }
