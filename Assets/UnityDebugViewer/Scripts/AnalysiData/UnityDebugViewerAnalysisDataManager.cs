@@ -145,11 +145,12 @@ namespace UnityDebugViewer {
 			UnityDebugViewerAnalysisDataTreeItem node = _root;
             if(log.stackList.Count == 0)
             {
+                /// 没有堆栈信息的Log，全部都合到一个节点下
                 UnityDebugViewerAnalysisData stackNode = new UnityDebugViewerAnalysisData(null, log.type, false);
                 UnityDebugViewerAnalysisDataTreeItem child = node.FindInChildren(stackNode);
                 if (child == null)
                 {
-                    child = node.AddChild(stackNode);
+                    node.AddChild(stackNode);
                 }
                 else
                 {

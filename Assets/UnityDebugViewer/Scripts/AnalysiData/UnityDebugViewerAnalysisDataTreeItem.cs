@@ -135,8 +135,16 @@ namespace UnityDebugViewer
         public UnityDebugViewerAnalysisDataTreeItem(UnityDebugViewerAnalysisData data, UnityDebugViewerAnalysisDataTreeItem parent) : this(data)
         {
             _parent = parent;
-            _parentID = parent.id;
-            _level = _parent != null ? _parent.Level + 1 : 0;
+            if (_parent != null)
+            {
+                _parentID = _parent.id;
+                _level = _parent.Level + 1;
+            }
+            else
+            {
+                _parentID = 0;
+                _level = 0;
+            }
         }
 
         public int Row;

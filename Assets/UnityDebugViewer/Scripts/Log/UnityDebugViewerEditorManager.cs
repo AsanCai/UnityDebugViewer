@@ -302,7 +302,7 @@ namespace UnityDebugViewer
             {
                 var key = this.serializeintermediaryEditorDicKeyList[i];
                 var value = this.serializeintermediaryEditorDicValueList[i];
-                if (intermediaryEditorDic.ContainsKey(key))
+                if (intermediaryEditorDic.ContainsKey(key) && value != null)
                 {
                     intermediaryEditorDic[key] = value;
                 }

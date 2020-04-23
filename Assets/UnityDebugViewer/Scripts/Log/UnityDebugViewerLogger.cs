@@ -248,7 +248,7 @@ namespace UnityDebugViewer
 
         public override string ToString()
         {
-            string logType = string.Empty;
+            string logType;
             switch (this.type)
             {
                 case LogType.Log:
